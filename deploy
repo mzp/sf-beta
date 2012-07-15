@@ -1,0 +1,9 @@
+#!/bin/sh
+VER=$1
+make html epub
+cd _build/epub
+mv *.epub software_foundation_${VER}.epub
+kindlegen software_foundation_${VER}.epub
+scp *.epub *.mobi proofcafe.org:/var/www/sf-beta
+cd ../..
+rsync -avz _build/html/ proofcafe.org:/var/www/sf-beta 

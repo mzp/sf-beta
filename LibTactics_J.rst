@@ -1,0 +1,3115 @@
+LibTactics\_J: 使いやすい汎用タクティックのコレクション
+=======================================================
+
+このファイルは、Coqの標準ディストリビューションで提供されるビルトインタクティックを拡張するタクティックのセットを含んでいます。タクティックの標準セットのいくつもの限界を克服し、それによってユーザがより短かくより頑強な証明を書けるようにすることを意図したものです。
+
+おそらく、Coqのタクティックは時が経つにつれて改良されて行き、このファイルは究極的には不要になるでしょう。それまでの間は、本格的なCoqユーザはおそらくとても便利だと感じるでしょう。
+
+このファイルはそれらのタクティックの実装と詳細なドキュメンテーションを含んでいます。SFの読者はこのファイルを読む必要はありません。その代わり、UseTactics\_J.vという名前の章を読むと良いでしょう。その章はLibTacticライブラリの最も便利なタクティックの紹介となっています。
+
+提供するメインの機能は:
+
+-  仮定の名前付けのためのより便利な構文と、それに関する導入(introduction)
+   と反転(inversion)のタクティック。それらのタクティックは、すべての変数の名前は必要とせず、型\ ``Prop``\ の仮定の名前だけを入力とします。
+-  N-引数の連言、選言、存在限量の扱いをサポートするタクティック。
+   背後にある実装が二項述語をベースにしていることを隠蔽します。
+-  自動化の便利なサポート。タクティックの後に"~"または"*"を付けると、
+   生成されたサブゴールについて自動処理を行います。記号"~"は\ ``auto``\ を、"*\ "は\ ``intuition eauto``\ を行います。これらはカスタマイズできます。
+-  補題を、変数、仮定、あるいはその両方を使って具体化するための、
+   前方連鎖のタクティックが提供されます。
+-  ``apply``\ のより強力な実装が提供されます(``refine``\ をベースにしているので、
+   変換(conversion)に関してより良い振る舞いをします)。
+-  従来の反転(inversion)のメカニズムで生成される変数の等式を置換する、
+   改良版の反転タクティック。さらに、依存型の等式の除去もサポートします(これは
+   Proof Irrelevance の弱い形である公理\ ``K``\ を必要とします)。
+-  証明記述の時間を節約するためのタクティック。
+   それには、仮定やサブゴールを主張するタクティックや、仮定を除去したり、仮定の名前や順番を変えたりするタクティックの改良版があります。
+
+追加のクレジット:
+
+-  タクティック\ ``forward``\ のアイデアの提供に関して、Xavier Leroy
+   に感謝します
+-  ``rapply``\ の実装のトリックに関して、Georges Gonthier に感謝します
+
+   Set Implicit Arguments.
+
+Coqのための追加の記法
+---------------------
+
+N変数の存在限量
+~~~~~~~~~~~~~~~
+
+``exists T1 ... TN, P``\ は\ ``exists T1, ..., exists TN, P``\ の略記法です。なお、\ ``Coq.Program.Syntax``\ は既に4つまでの変数の存在限量を定義しています。
+
+::
+
+    Notation "'exists' x1 ',' P" :=
+      (exists x1, P)
+      (at level 200, x1 ident,
+       right associativity) : type_scope.
+    Notation "'exists' x1 x2 ',' P" :=
+      (exists x1, exists x2, P)
+      (at level 200, x1 ident, x2 ident,
+       right associativity) : type_scope.
+    Notation "'exists' x1 x2 x3 ',' P" :=
+      (exists x1, exists x2, exists x3, P)
+      (at level 200, x1 ident, x2 ident, x3 ident,
+       right associativity) : type_scope.
+    Notation "'exists' x1 x2 x3 x4 ',' P" :=
+      (exists x1, exists x2, exists x3, exists x4, P)
+      (at level 200, x1 ident, x2 ident, x3 ident, x4 ident,
+       right associativity) : type_scope.
+    Notation "'exists' x1 x2 x3 x4 x5 ',' P" :=
+      (exists x1, exists x2, exists x3, exists x4, exists x5, P)
+      (at level 200, x1 ident, x2 ident, x3 ident, x4 ident, x5 ident,
+       right associativity) : type_scope.
+    Notation "'exists' x1 x2 x3 x4 x5 x6 ',' P" :=
+      (exists x1, exists x2, exists x3, exists x4, exists x5, exists x6, P)
+      (at level 200, x1 ident, x2 ident, x3 ident, x4 ident, x5 ident,
+       x6 ident,
+       right associativity) : type_scope.
+    Notation "'exists' x1 x2 x3 x4 x5 x6 x7 ',' P" :=
+      (exists x1, exists x2, exists x3, exists x4, exists x5, exists x6,
+       exists x7, P)
+      (at level 200, x1 ident, x2 ident, x3 ident, x4 ident, x5 ident,
+       x6 ident, x7 ident,
+       right associativity) : type_scope.
+    Notation "'exists' x1 x2 x3 x4 x5 x6 x7 x8 ',' P" :=
+      (exists x1, exists x2, exists x3, exists x4, exists x5, exists x6,
+       exists x7, exists x8, P)
+      (at level 200, x1 ident, x2 ident, x3 ident, x4 ident, x5 ident,
+       x6 ident, x7 ident, x8 ident,
+       right associativity) : type_scope.
+    Notation "'exists' x1 x2 x3 x4 x5 x6 x7 x8 x9 ',' P" :=
+      (exists x1, exists x2, exists x3, exists x4, exists x5, exists x6,
+       exists x7, exists x8, exists x9, P)
+      (at level 200, x1 ident, x2 ident, x3 ident, x4 ident, x5 ident,
+       x6 ident, x7 ident, x8 ident, x9 ident,
+       right associativity) : type_scope.
+    Notation "'exists' x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 ',' P" :=
+      (exists x1, exists x2, exists x3, exists x4, exists x5, exists x6,
+       exists x7, exists x8, exists x9, exists x10, P)
+      (at level 200, x1 ident, x2 ident, x3 ident, x4 ident, x5 ident,
+       x6 ident, x7 ident, x8 ident, x9 ident, x10 ident,
+       right associativity) : type_scope.
+
+Ltacによるプログラミングのための道具類
+--------------------------------------
+
+等価継続
+~~~~~~~~
+
+::
+
+    Ltac idcont tt :=
+      idtac.
+
+タクティックの型付けされない引数
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+任意のCoqの値は型\ ``Boxer``\ に収めることができます。これは、タクティックを実装するためのCoqの計算に便利です。
+
+::
+
+    Inductive Boxer : Type :=
+      | boxer : forall (A:Type), A -> Boxer.
+
+タクティックのオプショナルな引数
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ltac_no_arg``\ は、タクティックの定義の中で、オプショナルな引数をシミュレートするのに使うことができる定数です。タクティックの呼び出しには\ ``mytactic ltac_no_arg``\ とします。また、引数が与えられたかどうかをテストするためには\ ``match arg with ltac_no_arg => ..``\ または\ ``match type of arg with ltac_No_arg  => ..``\ とします。
+
+::
+
+    Inductive ltac_No_arg : Set :=
+      | ltac_no_arg : ltac_No_arg.
+
+タクティックのワイルドカード引数
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ltac_wild``\ は、タクティックの定義の中で、ワイルドカード引数をシミュレートするのに使うことができる定数です。記法は\ ``__``\ です。
+
+::
+
+    Inductive ltac_Wild : Set :=
+      | ltac_wild : ltac_Wild.
+
+    Notation "'__'" := ltac_wild : ltac_scope.
+
+``ltac_wilds``\ は、典型的には\ ``N``\ 個のワイルドカードの列をシミュレートするのに使う定数です。ここで\ ``N``\ はコンテキストに依存して適切に選ばれます。記法は\ ``___``\ です。
+
+::
+
+    Inductive ltac_Wilds : Set :=
+      | ltac_wilds : ltac_Wilds.
+
+    Notation "'___'" := ltac_wilds : ltac_scope.
+
+    Open Scope ltac_scope.
+
+ポジションマーカ
+~~~~~~~~~~~~~~~~
+
+``ltac_Mark``\ と\ ``ltac_mark``\ は、コンテキストまたはゴールにおいて、特定のポジションにマークをつけるために、タクティックが使う標識のダミーの定義です。
+
+::
+
+    Inductive ltac_Mark : Type :=
+      | ltac_mark : ltac_Mark.
+
+``gen_until_mark``\ はコンテキストの一番下の仮定から型\ ``Mark``\ の仮定に逹するまで\ ``generalize``\ を繰り返します。コンテキストに\ ``Mark``\ が現れないときは失敗します。
+
+::
+
+    Ltac gen_until_mark :=
+      match goal with H: ?T |- _ =>
+      match T with
+      | ltac_Mark => clear H
+      | _ => generalize H; clear H; gen_until_mark
+      end end.
+
+``intro_until_mark``\ は型\ ``Mark``\ の仮定に逹するまで\ ``intro``\ を繰り返します。そしてその仮定\ ``Mark``\ を廃棄します。ゴールの仮定に\ ``Mark``\ が現れないときには失敗します。
+
+::
+
+    Ltac intro_until_mark :=
+      match goal with
+      | |- (ltac_Mark -> _) => intros _
+      | _ => intro; intro_until_mark
+      end.
+
+タクティックの引数のリスト
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+型\ ``list Boxer``\ の datatype は ltac
+でCoqの値のリストを扱うために使われます。記法は\ ``>> v1 v2 ... vN``\ で値\ ``v1``\ から\ ``vN``\ までを含むリストを作ります。
+
+::
+
+    Require Import List.
+
+    Notation "'>>'" :=
+      (@nil Boxer)
+      (at level 0)
+      : ltac_scope.
+    Notation "'>>' v1" :=
+      ((boxer v1)::nil)
+      (at level 0, v1 at level 0)
+      : ltac_scope.
+    Notation "'>>' v1 v2" :=
+      ((boxer v1)::(boxer v2)::nil)
+      (at level 0, v1 at level 0, v2 at level 0)
+      : ltac_scope.
+    Notation "'>>' v1 v2 v3" :=
+      ((boxer v1)::(boxer v2)::(boxer v3)::nil)
+      (at level 0, v1 at level 0, v2 at level 0, v3 at level 0)
+      : ltac_scope.
+    Notation "'>>' v1 v2 v3 v4" :=
+      ((boxer v1)::(boxer v2)::(boxer v3)::(boxer v4)::nil)
+      (at level 0, v1 at level 0, v2 at level 0, v3 at level 0,
+       v4 at level 0)
+      : ltac_scope.
+    Notation "'>>' v1 v2 v3 v4 v5" :=
+      ((boxer v1)::(boxer v2)::(boxer v3)::(boxer v4)::(boxer v5)::nil)
+      (at level 0, v1 at level 0, v2 at level 0, v3 at level 0,
+       v4 at level 0, v5 at level 0)
+      : ltac_scope.
+    Notation "'>>' v1 v2 v3 v4 v5 v6" :=
+      ((boxer v1)::(boxer v2)::(boxer v3)::(boxer v4)::(boxer v5)
+       ::(boxer v6)::nil)
+      (at level 0, v1 at level 0, v2 at level 0, v3 at level 0,
+       v4 at level 0, v5 at level 0, v6 at level 0)
+      : ltac_scope.
+    Notation "'>>' v1 v2 v3 v4 v5 v6 v7" :=
+      ((boxer v1)::(boxer v2)::(boxer v3)::(boxer v4)::(boxer v5)
+       ::(boxer v6)::(boxer v7)::nil)
+      (at level 0, v1 at level 0, v2 at level 0, v3 at level 0,
+       v4 at level 0, v5 at level 0, v6 at level 0, v7 at level 0)
+      : ltac_scope.
+    Notation "'>>' v1 v2 v3 v4 v5 v6 v7 v8" :=
+      ((boxer v1)::(boxer v2)::(boxer v3)::(boxer v4)::(boxer v5)
+       ::(boxer v6)::(boxer v7)::(boxer v8)::nil)
+      (at level 0, v1 at level 0, v2 at level 0, v3 at level 0,
+       v4 at level 0, v5 at level 0, v6 at level 0, v7 at level 0,
+       v8 at level 0)
+      : ltac_scope.
+    Notation "'>>' v1 v2 v3 v4 v5 v6 v7 v8 v9" :=
+      ((boxer v1)::(boxer v2)::(boxer v3)::(boxer v4)::(boxer v5)
+       ::(boxer v6)::(boxer v7)::(boxer v8)::(boxer v9)::nil)
+      (at level 0, v1 at level 0, v2 at level 0, v3 at level 0,
+       v4 at level 0, v5 at level 0, v6 at level 0, v7 at level 0,
+       v8 at level 0, v9 at level 0)
+      : ltac_scope.
+    Notation "'>>' v1 v2 v3 v4 v5 v6 v7 v8 v9 v10" :=
+      ((boxer v1)::(boxer v2)::(boxer v3)::(boxer v4)::(boxer v5)
+       ::(boxer v6)::(boxer v7)::(boxer v8)::(boxer v9)::(boxer v10)::nil)
+      (at level 0, v1 at level 0, v2 at level 0, v3 at level 0,
+       v4 at level 0, v5 at level 0, v6 at level 0, v7 at level 0,
+       v8 at level 0, v9 at level 0, v10 at level 0)
+      : ltac_scope.
+    Notation "'>>' v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11" :=
+      ((boxer v1)::(boxer v2)::(boxer v3)::(boxer v4)::(boxer v5)
+       ::(boxer v6)::(boxer v7)::(boxer v8)::(boxer v9)::(boxer v10)
+       ::(boxer v11)::nil)
+      (at level 0, v1 at level 0, v2 at level 0, v3 at level 0,
+       v4 at level 0, v5 at level 0, v6 at level 0, v7 at level 0,
+       v8 at level 0, v9 at level 0, v10 at level 0, v11 at level 0)
+      : ltac_scope.
+    Notation "'>>' v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12" :=
+      ((boxer v1)::(boxer v2)::(boxer v3)::(boxer v4)::(boxer v5)
+       ::(boxer v6)::(boxer v7)::(boxer v8)::(boxer v9)::(boxer v10)
+       ::(boxer v11)::(boxer v12)::nil)
+      (at level 0, v1 at level 0, v2 at level 0, v3 at level 0,
+       v4 at level 0, v5 at level 0, v6 at level 0, v7 at level 0,
+       v8 at level 0, v9 at level 0, v10 at level 0, v11 at level 0,
+       v12 at level 0)
+      : ltac_scope.
+    Notation "'>>' v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13" :=
+      ((boxer v1)::(boxer v2)::(boxer v3)::(boxer v4)::(boxer v5)
+       ::(boxer v6)::(boxer v7)::(boxer v8)::(boxer v9)::(boxer v10)
+       ::(boxer v11)::(boxer v12)::(boxer v13)::nil)
+      (at level 0, v1 at level 0, v2 at level 0, v3 at level 0,
+       v4 at level 0, v5 at level 0, v6 at level 0, v7 at level 0,
+       v8 at level 0, v9 at level 0, v10 at level 0, v11 at level 0,
+       v12 at level 0, v13 at level 0)
+      : ltac_scope.
+
+タクティック\ ``list_boxer_of``\ は項\ ``E``\ を入力し、次の規則に従って型
+"list boxer"の項を返します:
+
+-  もし\ ``E``\ が既に型"list Boxer"ならば\ ``E``\ を返す;
+-  そうでなければリスト\ ``(boxer E)::nil``\ を返す。
+
+   Ltac list\_boxer\_of E := match type of E with \| List.list Boxer =>
+   constr:(E) \| \_ => constr:((boxer E)::nil) end.
+
+補題のデータベース
+~~~~~~~~~~~~~~~~~~
+
+項を項へマップするデータベースを実装するために、ヒント機構を使います。新しいデータベースを宣言するには定義\ ``Definition mydatabase := True.``\ を使います。
+
+そして、\ ``mykey``\ を\ ``myvalue``\ にマップするには、次のヒントを記述します:``Hint Extern 1 (Register mydatabase mykey) => Provide myvalue.``
+
+最後に、キーに関連付けられた値を問合わせるには、タクティック\ ``ltac_database_get mydatabase mykey``\ を走らせます。そうするとゴールの先頭に項\ ``myvalue``\ が置かれます。すると\ ``intro``\ によって指名し利用できます。
+
+::
+
+    Definition ltac_database (D:Boxer) (T:Boxer) (A:Boxer) := True.
+
+    Notation "'Register' D T" := (ltac_database (boxer D) (boxer T) _)
+      (at level 69, D at level 0, T at level 0).
+
+    Lemma ltac_database_provide : forall (A:Boxer) (D:Boxer) (T:Boxer),
+      ltac_database D T A.
+    Proof. split. Qed.
+
+    Ltac Provide T := apply (@ltac_database_provide (boxer T)).
+
+    Ltac ltac_database_get D T :=
+      let A := fresh "TEMP" in evar (A:Boxer);
+      let H := fresh "TEMP" in
+      assert (H : ltac_database (boxer D) (boxer T) A);
+      [ subst A; auto
+      | subst A; match type of H with ltac_database _ _ (boxer ?L) =>
+                   generalize L end; clear H ].
+
+その場での仮定の除去
+~~~~~~~~~~~~~~~~~~~~
+
+``lets``\ 、\ ``applys``\ 、\ ``forwards``\ 、\ ``specializes``\ などのタクティックに渡される引数のリスト\ ``>> H1 H2 .. HN``\ において、恒等関数である項\ ``rm``\ を消去すべき仮定の名前の前に置くことができます。
+
+::
+
+    Definition rm (A:Type) (X:A) := X.
+
+``rm_term E``\ は\ ``E``\ と同じ型と認められる仮定を除去します。
+
+::
+
+    Ltac rm_term E :=
+      let T := type of E in
+      match goal with H: T |- _ => try clear H end.
+
+``rm_inside E``\ は\ ``rm Ei``\ という形の\ ``E``\ の任意の部分項に対して\ ``rm_term Ei``\ を呼びます。
+
+::
+
+    Ltac rm_inside E :=
+      let go E := rm_inside E in
+      match E with
+      | rm ?X => rm_term X
+      | ?X1 ?X2 =>
+         go X1; go X2
+      | ?X1 ?X2 ?X3 =>
+         go X1; go X2; go X3
+      | ?X1 ?X2 ?X3 ?X4 =>
+         go X1; go X2; go X3; go X4
+      | ?X1 ?X2 ?X3 ?X4 ?X5 =>
+         go X1; go X2; go X3; go X4; go X5
+      | ?X1 ?X2 ?X3 ?X4 ?X5 ?X6 =>
+         go X1; go X2; go X3; go X4; go X5; go X6
+      | ?X1 ?X2 ?X3 ?X4 ?X5 ?X6 ?X7 =>
+         go X1; go X2; go X3; go X4; go X5; go X6; go X7
+      | ?X1 ?X2 ?X3 ?X4 ?X5 ?X6 ?X7 ?X8 =>
+         go X1; go X2; go X3; go X4; go X5; go X6; go X7; go X8
+      | ?X1 ?X2 ?X3 ?X4 ?X5 ?X6 ?X7 ?X8 ?X9 =>
+         go X1; go X2; go X3; go X4; go X5; go X6; go X7; go X8; go X9
+      | ?X1 ?X2 ?X3 ?X4 ?X5 ?X6 ?X7 ?X8 ?X9 ?X10 =>
+         go X1; go X2; go X3; go X4; go X5; go X6; go X7; go X8; go X9; go X10
+      | _ => idtac
+      end.
+
+パフォーマンスを上げるために\ ``rm_inside``\ を非アクティブ化するには、次の定義の本体を\ ``idtac``\ に置換してください。
+
+::
+
+    Ltac fast_rm_inside E :=
+      rm_inside E.
+
+引数としての数値
+~~~~~~~~~~~~~~~~
+
+タクティックが自然数を引数としてとるとき、自然数として構文解析される可能性と相対値として構文解析される可能性があります。タクティックが引数を自然数に変換するために、変換タクティックを提供します。
+
+::
+
+    Require Coq.NArith.BinPos Coq.ZArith.BinInt.
+
+    Definition ltac_nat_from_int (x:BinInt.Z) : nat :=
+      match x with
+      | BinInt.Z0 => 0%nat
+      | BinInt.Zpos p => BinPos.nat_of_P p
+      | BinInt.Zneg p => 0%nat
+      end.
+
+    Ltac nat_from_number N :=
+      match type of N with
+      | nat => constr:(N)
+      | BinInt.Z => let N' := constr:(ltac_nat_from_int N) in eval compute in N'
+      end.
+
+``ltac_pattern E at K``\ は\ ``pattern E at K``\ と同様ですが、\ ``K``\ が
+Ltac の整数ではなく Coq
+の自然数である点が違います。構文\ ``ltac_pattern E as K in H``\ も可能です。
+
+::
+
+    Tactic Notation "ltac_pattern" constr(E) "at" constr(K) :=
+      match nat_from_number K with
+      | 1 => pattern E at 1
+      | 2 => pattern E at 2
+      | 3 => pattern E at 3
+      | 4 => pattern E at 4
+      | 5 => pattern E at 5
+      | 6 => pattern E at 6
+      | 7 => pattern E at 7
+      | 8 => pattern E at 8
+      end.
+
+    Tactic Notation "ltac_pattern" constr(E) "at" constr(K) "in" hyp(H) :=
+      match nat_from_number K with
+      | 1 => pattern E at 1 in H
+      | 2 => pattern E at 2 in H
+      | 3 => pattern E at 3 in H
+      | 4 => pattern E at 4 in H
+      | 5 => pattern E at 5 in H
+      | 6 => pattern E at 6 in H
+      | 7 => pattern E at 7 in H
+      | 8 => pattern E at 8 in H
+      end.
+
+タクティックをテストする
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+``show tac``\ はタクティック\ ``tac``\ を実行し、その結果を表示します。
+
+::
+
+    Tactic Notation "show" tactic(tac) :=
+      let R := tac in pose R.
+
+``dup N``\ は現在のゴールの\ ``N``\ 個のコピーを作ります。これは、タクティックのふるまいを示す例を作るのに便利です。\ ``dup``\ は\ ``dup 2``\ の略記法です。
+
+::
+
+    Lemma dup_lemma : forall P, P -> P -> P.
+    Proof. auto. Qed.
+
+    Ltac dup_tactic N :=
+      match nat_from_number N with
+      | 0 => idtac
+      | S 0 => idtac
+      | S ?N' => apply dup_lemma; [ | dup_tactic N' ]
+      end.
+
+    Tactic Notation "dup" constr(N) :=
+      dup_tactic N.
+    Tactic Notation "dup" :=
+      dup 2.
+
+ゴールにやり残しがないことのチェック
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Ltac check_noevar M :=
+      match M with M => idtac end.
+
+    Ltac check_noevar_hyp H :=
+
+仮定のタグ付け
+~~~~~~~~~~~~~~
+
+``get_last_hyp tt``\ はコンテキストの一番下の最後の仮定を返す関数です。仮定に付けられたデフォルトの名前を得るのに便利です。例えば:``intro; let H := get_last_hyp tt in let H' := fresh "P" H in ...``
+
+::
+
+    Ltac get_last_hyp tt :=
+      match goal with H: _ |- _ => constr:(H) end.
+
+仮定のタグ付け
+~~~~~~~~~~~~~~
+
+``ltac_tag_subst``\ は置換対象の等式である仮定にタグ付けするのに使われる特別なマーカです。
+
+::
+
+    Definition ltac_tag_subst (A:Type) (x:A) := x.
+
+``ltac_to_generalize``\ は一般化する仮定のための特別なマーカです。
+
+::
+
+    Definition ltac_to_generalize (A:Type) (x:A) := x.
+
+    Ltac gen_to_generalize :=
+      repeat match goal with
+        H: ltac_to_generalize _ |- _ => generalize H; clear H end.
+
+    Ltac mark_to_generalize H :=
+      let T := type of H in
+      change T with (ltac_to_generalize T) in H.
+
+項を解体する
+~~~~~~~~~~~~
+
+``get_head E``\ は項\ ``E``\ の冒頭の定数を返すタクティックです。つまり、\ ``P x1 ... xN``\ という形の項に適用されると\ ``P``\ を返します。\ ``E``\ が適用の形ではないときには、\ ``E``\ を返します。注意:
+このタクティックは、ゴールが積で、この関数の結果を使う処理がある場合にループすることがあります。(訳注:
+このファイル中での積(product)は、他のファイルとは異なり(？)Coq
+のマニュアルの product
+のことです。含意または全称限量のことを指します。\ ``Logic_J.v``\ の冒頭で、\ ``->``\ と\ ``forall``\ が同じだと言っていますが、これらのことです。)
+
+::
+
+    Ltac get_head E :=
+      match E with
+      | ?P _ _ _ _ _ _ _ _ _ _ _ _ => constr:(P)
+      | ?P _ _ _ _ _ _ _ _ _ _ _ => constr:(P)
+      | ?P _ _ _ _ _ _ _ _ _ _ => constr:(P)
+      | ?P _ _ _ _ _ _ _ _ _ => constr:(P)
+      | ?P _ _ _ _ _ _ _ _ => constr:(P)
+      | ?P _ _ _ _ _ _ _ => constr:(P)
+      | ?P _ _ _ _ _ _ => constr:(P)
+      | ?P _ _ _ _ _ => constr:(P)
+      | ?P _ _ _ _ => constr:(P)
+      | ?P _ _ _ => constr:(P)
+      | ?P _ _ => constr:(P)
+      | ?P _ => constr:(P)
+      | ?P => constr:(P)
+      end.
+
+``get_fun_arg E``\ は適用項\ ``E``\ の分解をするタクティックです。つまり、\ ``X1 ... XN``\ という形の項に適用されると\ ``X1 .. X(N-1)``\ と\ ``XN``\ の対を返します。
+
+::
+
+    Ltac get_fun_arg E :=
+      match E with
+      | ?X1 ?X2 ?X3 ?X4 ?X5 ?X6 ?X7 ?X => constr:((X1 X2 X3 X4 X5 X6,X))
+      | ?X1 ?X2 ?X3 ?X4 ?X5 ?X6 ?X => constr:((X1 X2 X3 X4 X5,X))
+      | ?X1 ?X2 ?X3 ?X4 ?X5 ?X => constr:((X1 X2 X3 X4,X))
+      | ?X1 ?X2 ?X3 ?X4 ?X => constr:((X1 X2 X3,X))
+      | ?X1 ?X2 ?X3 ?X => constr:((X1 X2,X))
+      | ?X1 ?X2 ?X => constr:((X1,X))
+      | ?X1 ?X => constr:((X1,X))
+      end.
+
+出現場所でのアクションと出現場所以外でのアクション
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ltac_action_at K of E do Tac``\ はゴールにおける\ ``E``\ の\ ``K``\ 番目の出現を区別し、それを指定されたパターン\ ``P``\ によって\ ``P E``\ の形にセットしてタクティック\ ``Tac``\ を呼び、最後に\ ``P``\ を
+unfold します。構文\ ``ltac_action_at K of E in H do Tac``\ も可能です。
+
+::
+
+    Tactic Notation "ltac_action_at" constr(K) "of" constr(E) "do" tactic(Tac) :=
+      let p := fresh in ltac_pattern E at K;
+      match goal with |- ?P _ => set (p:=P) end;
+      Tac; unfold p; clear p.
+
+    Tactic Notation "ltac_action_at" constr(K) "of" constr(E) "in" hyp(H) "do" tactic(Tac) :=
+      let p := fresh in ltac_pattern E at K in H;
+      match type of H with ?P _ => set (p:=P) in H end;
+      Tac; unfold p in H; clear p.
+
+``protects E do Tac``\ は式\ ``E``\ に一時的に名前を与えることで、タクティック\ ``Tac``\ の実行が\ ``E``\ を変更しないようにします。これは例えば\ ``simpl``\ のアクションを制限するのに便利です。
+
+::
+
+    Tactic Notation "protects" constr(E) "do" tactic(Tac) :=
+
+``eq``\ の別名
+~~~~~~~~~~~~~~
+
+``eq'``\ は帰納的定義の等式で使うための\ ``eq``\ の別名で、これにより、\ ``inversion``\ によって生成される等式と混ざるのを防ぐことができます。
+
+::
+
+    Definition eq' := @eq.
+
+    Hint Unfold eq'.
+
+    Notation "x '='' y" := (@eq' _ x y)
+      (at level 70, arguments at next level).
+
+後方/前方連鎖
+-------------
+
+適用(Application)
+~~~~~~~~~~~~~~~~~
+
+``rapply``\ は\ ``eapply``\ と同様のタクティックですが、\ ``refine``\ タクティックに基づいている点が違います。そしてこのために、(少なくとも理論的には
+：)より強力です。簡単に言うと、引数がマッチするために必要となる変換をその場で行うことができます。また必要なときに存在変数を具体化できます。
+
+::
+
+    Tactic Notation "rapply" constr(t) :=
+      first
+
+自然数\ ``N``\ について、タクティック\ ``applys_N T``\ は\ ``applys T``\ をより効果的に使う方法を提供します。関数\ ``T``\ の引数の数(アリティ、arity)を明示的に指定することで、すべての可能なアリティを試してみることを避けます。
+
+::
+
+    Tactic Notation "rapply_0" constr(t) :=
+      refine (@t).
+    Tactic Notation "rapply_1" constr(t) :=
+      refine (@t _).
+    Tactic Notation "rapply_2" constr(t) :=
+      refine (@t _ _).
+    Tactic Notation "rapply_3" constr(t) :=
+      refine (@t _ _ _).
+    Tactic Notation "rapply_4" constr(t) :=
+      refine (@t _ _ _ _).
+    Tactic Notation "rapply_5" constr(t) :=
+      refine (@t _ _ _ _ _).
+    Tactic Notation "rapply_6" constr(t) :=
+      refine (@t _ _ _ _ _ _).
+    Tactic Notation "rapply_7" constr(t) :=
+      refine (@t _ _ _ _ _ _ _).
+    Tactic Notation "rapply_8" constr(t) :=
+      refine (@t _ _ _ _ _ _ _ _).
+    Tactic Notation "rapply_9" constr(t) :=
+      refine (@t _ _ _ _ _ _ _ _ _).
+    Tactic Notation "rapply_10" constr(t) :=
+      refine (@t _ _ _ _ _ _ _ _ _ _).
+
+``lets_base H E``\ は仮定\ ``H : T``\ をコンテキストに追加します。ここで\ ``T``\ は項\ ``E``\ の型です。もし\ ``H``\ が導入パターンなら、パターンに従って\ ``H``\ を分解します。
+
+::
+
+    Ltac lets_base I E := generalize E; intros I.
+
+``applys_to H E``\ は、仮定\ ``H``\ を、項\ ``E``\ を\ ``H``\ に適用した結果で置換することで、仮定の型を変換します。直観的には、\ ``lets H: (E H)``\ と同値です。
+
+::
+
+    Tactic Notation "applys_to" hyp(H) constr(E) :=
+      let H' := fresh in rename H into H';
+      (first [ lets_base H (E H')
+             | lets_base H (E _ H')
+             | lets_base H (E _ _ H')
+             | lets_base H (E _ _ _ H')
+             | lets_base H (E _ _ _ _ H')
+             | lets_base H (E _ _ _ _ _ H')
+             | lets_base H (E _ _ _ _ _ _ H')
+             | lets_base H (E _ _ _ _ _ _ _ H')
+             | lets_base H (E _ _ _ _ _ _ _ _ H')
+             | lets_base H (E _ _ _ _ _ _ _ _ _ H') ]
+      ); clear H'.
+
+``constructors``\ は\ ``constructor``\ または\ ``econstructor``\ を呼びます。
+
+::
+
+    Tactic Notation "constructors" :=
+      first [ constructor | econstructor ]; unfold eq'.
+
+表明(Assertions)
+~~~~~~~~~~~~~~~~
+
+``false_goal``\ は任意のゴールを\ ``False``\ で置換します。タクティック\ ``false``\ (後述)と対照的に、特に何もしようとしません。
+
+::
+
+    Tactic Notation "false_goal" :=
+      elimtype False.
+
+``false_post``\ は\ ``False``\ の形のゴールを証明するときに背後で使われるタクティックです。デフォルトの実装ではコンテキストが\ ``False``\ か、または\ ``C x1 .. xN  =  D y1 .. yM``\ という形の仮定を含む場合、あるいは\ ``congruence``\ タクティックがある\ ``x``\ について\ ``x <> x``\ の証明を見つけた場合にゴールを証明します。
+
+::
+
+    Ltac false_post :=
+      solve [ assumption | discriminate | congruence ].
+
+``false``\ は任意のゴールを\ ``False``\ に置換し、\ ``false_post``\ を呼びます。
+
+::
+
+    Tactic Notation "false" :=
+      false_goal; try false_post.
+
+``tryfalse``\ は矛盾によってゴールを解こうとします。そして解けなかった場合にはゴールを変更しないまま残します。これは\ ``try solve \[ false \``]
+と同値です。
+
+::
+
+    Tactic Notation "tryfalse" :=
+      try solve [ false ].
+
+``tryfalse by tac /``\ は\ ``tryfalse``\ と同様ですが、\ ``assumption``\ と\ ``discriminate``\ が適用できないとき、タクティック\ ``tac``\ を使ってゴールを解こうとする点が違います。これは\ ``try solve \[ false; tac \``]
+と同値です。例:``tryfalse by congruence/``
+
+::
+
+    Tactic Notation "tryfalse" "by" tactic(tac) "/" :=
+      try solve [ false; instantiate; tac ].
+
+``false T``\ は\ ``false; apply T``\ を試みます。それが失敗した場合、\ ``T``\ を仮定に加え\ ``false``\ を呼びます。
+
+::
+
+    Tactic Notation "false" constr(T) "by" tactic(tac) "/" :=
+      false_goal; first
+        [ first [ apply T | eapply T | rapply T]; instantiate; tac
+
+``false_invert``\ は、コンテキストに少なくとも1つの仮定\ ``H``\ があって、\ ``inversion H``\ によって\ ``H``\ が不合理(absurd)であることが証明されるとき、任意のゴールを証明します。
+
+::
+
+    Ltac false_invert_tactic :=
+      match goal with H:_ |- _ =>
+        solve [ inversion H
+              | clear H; false_invert_tactic
+              | fail 2 ] end.
+
+    Tactic Notation "false_invert" :=
+      false_invert_tactic.
+
+``tryfalse_invert``\ は\ ``false``\ と\ ``false_invert``\ を使ってゴールを解こうとします。そして失敗するときは、ゴールを変えずに残します。
+
+::
+
+    Tactic Notation "tryfalse_invert" :=
+      try solve [ false | false_invert ].
+
+``asserts H: T``\ は\ ``assert (H : T)``\ の別構文です。これは同様に導出パターンについてはたらきます。例えば、次のように書くことができます:``asserts \[x P\``\ (exists
+n, n = 3)]、あるいは\ ``asserts \[H|H\``\ (n = 0 / n = 1)]。
+
+::
+
+    Tactic Notation "asserts" simple_intropattern(I) ":" constr(T) :=
+      let H := fresh in assert (H : T);
+      [ | generalize H; clear H; intros I ].
+
+``asserts H1 .. HN: T``\ は\ ``asserts \[H1 \[H2 \[.. HN\``]]: T]
+の略記法です。
+
+::
+
+    Tactic Notation "asserts" simple_intropattern(I1)
+     simple_intropattern(I2) ":" constr(T) :=
+      asserts [I1 I2]: T.
+    Tactic Notation "asserts" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3) ":" constr(T) :=
+      asserts [I1 [I2 I3]]: T.
+    Tactic Notation "asserts" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3)
+     simple_intropattern(I4) ":" constr(T) :=
+      asserts [I1 [I2 [I3 I4]]]: T.
+    Tactic Notation "asserts" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3)
+     simple_intropattern(I4) simple_intropattern(I5) ":" constr(T) :=
+      asserts [I1 [I2 [I3 [I4 I5]]]]: T.
+    Tactic Notation "asserts" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3)
+     simple_intropattern(I4) simple_intropattern(I5)
+     simple_intropattern(I6) ":" constr(T) :=
+      asserts [I1 [I2 [I3 [I4 [I5 I6]]]]]: T.
+
+``asserts: T``\ は自動的に選択された\ ``H``\ について\ ``asserts H: T``\ をします。
+
+::
+
+    Tactic Notation "asserts" ":" constr(T) :=
+      let H := fresh in asserts H : T.
+
+``cuts H: T``\ は\ ``asserts H: T``\ と同様ですが、生成される2つのサブゴールの順番が逆になる点が違います。サブゴール\ ``T``\ が二番目に来ます。なお、\ ``cut``\ と対照的に仮定を導入します。
+
+::
+
+    Tactic Notation "cuts" simple_intropattern(I) ":" constr(T) :=
+      cut (T); [ intros I | idtac ].
+
+``cuts: T``\ は自動的に選択された\ ``H``\ について\ ``cuts H: T``\ をします。
+
+::
+
+    Tactic Notation "cuts" ":" constr(T) :=
+      let H := fresh in cuts H: T.
+
+``cuts H1 .. HN: T``\ は\ ``cuts \[H1 \[H2 \[.. HN\``]]: T]
+の略記法です。
+
+::
+
+    Tactic Notation "cuts" simple_intropattern(I1)
+     simple_intropattern(I2) ":" constr(T) :=
+      cuts [I1 I2]: T.
+    Tactic Notation "cuts" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3) ":" constr(T) :=
+      cuts [I1 [I2 I3]]: T.
+    Tactic Notation "cuts" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3)
+     simple_intropattern(I4) ":" constr(T) :=
+      cuts [I1 [I2 [I3 I4]]]: T.
+    Tactic Notation "cuts" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3)
+     simple_intropattern(I4) simple_intropattern(I5) ":" constr(T) :=
+      cuts [I1 [I2 [I3 [I4 I5]]]]: T.
+    Tactic Notation "cuts" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3)
+     simple_intropattern(I4) simple_intropattern(I5)
+     simple_intropattern(I6) ":" constr(T) :=
+      cuts [I1 [I2 [I3 [I4 [I5 I6]]]]]: T.
+
+具体化と前方連鎖
+~~~~~~~~~~~~~~~~
+
+具体化タクティックは補題\ ``E``\ (その型は積)をある引数について具体化するために使います。\ ``E``\ の型は含意と全称限量から成ります。例えば\ ``forall x, P x -> forall y z, Q x y z -> R z``\ です。
+
+最初の可能性は引数を順番に与えることです。最初に\ ``x``\ 、次に\ ``P x``\ の証明、次に\ ``y``...このやり方をとることは"Args"モードと呼ばれますが、すべての引数を与えることが必要です。もしワイルドカード(``__``\ と書かれる)が与えられると、引数の場所に存在変数が導入されます。
+
+しばしば、依存する変数(この場合\ ``x``,\ ``y``,\ ``z``)だけを与え、生成される仮定をサブゴールとすることで、多くの時間を節約できます。この"Vars"モードでは、変数だけが与えなければならないものです。例えば、補題\ ``E``\ が\ ``3``\ と\ ``4``\ に適用されたとき、結果は型\ ``forall z, Q 3 4 z -> R z``\ の項となり、\ ``P 3``\ が新しいサブゴールになります。ワイルドカードを使って存在変数を導入することもできます。
+
+しかしながら、仮定のいくつかが既に存在していることがあり、そのときには、その仮定を使って補題\ ``E``\ を具体化することで時間を節約することができます。例えば、\ ``F``\ が型\ ``P 2``\ の項とします。この"Hyps"モードで\ ``E``\ を\ ``F``\ に適用すると結果は型\ ``forall y z, Q 2 y z -> R z``\ の項になります。ワイルドカードの使用はこのモードでは表明を生成します。例えば\ ``G``\ が型\ ``Q 2 3 4``\ を持つならば、mode-h
+で\ ``E``\ をワイルドカードへ適用し、それを\ ``G``\ へ適用した結果は型\ ``R 4``\ の項となり、\ ``P 2``\ は新しいサブゴールとなります。
+
+補題の具体化するべき引数を与え、アンダースコアが入るべき場所をタクティックに自動的に発見させることはとても便利です。アンダースコア引数\ ``__``\ は次のように解釈されます:アンダースコアは引数をスキップしたいことを意味します。ただしその引数の型は次に与えられる実際の引数(ここで「実際の」とはアンダースコアでないこと)と同じになります。アンダースコアの後で実際の引数が与えられない場合、アンダースコアは最初の可能な引数に使われます。
+
+一般構文は\ ``tactic (>> E1 .. EN)``\ です。ここで\ ``tactic``\ はタクティック(いくつかの引数を伴うこともある)の名前で、\ ``Ei``\ は引数です。さらに、いくつかのタクティックは、5以下の\ ``N``\ について\ ``tactic (>>Hnts E1 .. EN)``\ の略記法として構文\ ``tactic E1 .. EN``\ を使うことができます。
+
+最後に、与えられた引数\ ``EN``\ が三連アンダースコア\ ``___``\ のときは、適切な数のワイルドカードのリストを与えるのと同値です。これは、補題の残りのすべての引数が具体化されることを意味します。
+
+``lets H: (>> E0 E1 .. EN)``\ は補題\ ``E0``\ を各引数\ ``Ei``\ (これはワイルドカード\ ``__``\ のこともあります)について具体化し、結果の項に名前\ ``H``\ を付けます。\ ``H``\ は導出パターンか、導出パターンの列\ ``I1 I2 IN``\ か、空です。構文\ ``lets H: E0 E1 .. EN``\ も可能です。もし最後の引数\ ``EN``\ が\ ``___``\ (三連アンダースコア)ならば、\ ``H``\ のすべての引数が具体化されます。
+
+::
+
+    Ltac lets_build I Ei :=
+      let args := list_boxer_of Ei in
+      let args := args_unfold_head_if_not_product_but_params args in
+
+``forwards H: (>> E0 E1 .. EN)``\ は\ ``forwards H: (>> E0 E1 .. EN ___)``\ の略記法です。各引数\ ``Ei``\ (``E0``\ を除く)はワイルドカード\ ``__``\ でも構いません。\ ``H``\ は導入パターンか、導入パターンの列か、空です。構文\ ``forwards H: E0 E1 .. EN``\ も可能です。
+
+::
+
+    Ltac forwards_build_app_arg Ei :=
+      let args := list_boxer_of Ei in
+      let args := (eval simpl in (args ++ ((boxer ___)::nil))) in
+      let args := args_unfold_head_if_not_product args in
+      args.
+
+    Ltac forwards_then Ei cont :=
+      let args := forwards_build_app_arg Ei in
+      let args := args_unfold_head_if_not_product_but_params args in
+      build_app args cont.
+
+    Tactic Notation "forwards" simple_intropattern(I) ":" constr(Ei) :=
+      let args := forwards_build_app_arg Ei in
+      lets I: args.
+
+    Tactic Notation "forwards" ":" constr(E) :=
+      let H := fresh in forwards H: E.
+    Tactic Notation "forwards" ":" constr(E0)
+     constr(A1) :=
+      forwards: (>> E0 A1).
+    Tactic Notation "forwards" ":" constr(E0)
+     constr(A1) constr(A2) :=
+      forwards: (>> E0 A1 A2).
+    Tactic Notation "forwards" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) :=
+      forwards: (>> E0 A1 A2 A3).
+    Tactic Notation "forwards" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) :=
+      forwards: (>> E0 A1 A2 A3 A4).
+    Tactic Notation "forwards" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) constr(A5) :=
+      forwards: (>> E0 A1 A2 A3 A4 A5).
+
+``applys (>> E0 E1 .. EN)``\ は補題\ ``E0``\ を各引数\ ``Ei``\ (ワイルドカード\ ``__``\ でも良い)について具体化し、その結果を、前述の\ ``applys``\ を使って現在のゴールに適用します。\ ``applys E0 E1 E2 .. EN``\ も可能です。
+
+::
+
+    Ltac applys_build Ei :=
+      let args := list_boxer_of Ei in
+      let args := args_unfold_head_if_not_product_but_params args in
+      build_app args ltac:(fun R =>
+       first [ apply R | eapply R | rapply R ]).
+
+    Ltac applys_base E :=
+      match type of E with
+      | list Boxer => applys_build E
+      | _ => first [ rapply E | applys_build E ]
+      end; fast_rm_inside E.
+
+    Tactic Notation "applys" constr(E) :=
+      applys_base E.
+    Tactic Notation "applys" constr(E0) constr(A1) :=
+      applys (>> E0 A1).
+    Tactic Notation "applys" constr(E0) constr(A1) constr(A2) :=
+      applys (>> E0 A1 A2).
+    Tactic Notation "applys" constr(E0) constr(A1) constr(A2) constr(A3) :=
+      applys (>> E0 A1 A2 A3).
+    Tactic Notation "applys" constr(E0) constr(A1) constr(A2) constr(A3) constr(A4) :=
+      applys (>> E0 A1 A2 A3 A4).
+    Tactic Notation "applys" constr(E0) constr(A1) constr(A2) constr(A3) constr(A4) constr(A5) :=
+      applys (>> E0 A1 A2 A3 A4 A5).
+
+``fapplys (>> E0 E1 .. EN)``\ は補題\ ``E0``\ を各引数\ ``Ei``\ について具体化します。引数が\ ``___``\ のときは、すべての存在変数が明示的に具体化されます。そして結果の項を現在のゴールに適用します。\ ``fapplys E0 E1 E2 .. EN``\ も可能です。
+
+::
+
+    Ltac fapplys_build Ei :=
+      let args := list_boxer_of Ei in
+      let args := (eval simpl in (args ++ ((boxer ___)::nil))) in
+      let args := args_unfold_head_if_not_product_but_params args in
+      build_app args ltac:(fun R => apply R).
+
+    Tactic Notation "fapplys" constr(E0) :=
+
+``specializes H (>> E1 E2 .. EN)``\ は仮定\ ``H``\ を各引数\ ``Ei``\ (ワイルドカード\ ``__``\ も可)について具体化します。もし最後の引数\ ``EN``\ が\ ``___``\ (三連アンダースコア)ならば、\ ``H``\ のすべての引数が具体化されます。
+
+::
+
+    Ltac specializes_build H Ei :=
+      let H' := fresh "TEMP" in rename H into H';
+      let args := list_boxer_of Ei in
+      let args := constr:((boxer H')::args) in
+      let args := args_unfold_head_if_not_product args in
+      build_app args ltac:(fun R => lets H: R);
+      clear H'.
+
+    Ltac specializes_base H Ei :=
+      specializes_build H Ei; fast_rm_inside Ei.
+
+    Tactic Notation "specializes" hyp(H) :=
+      specializes_base H (___).
+    Tactic Notation "specializes" hyp(H) constr(A) :=
+      specializes_base H A.
+    Tactic Notation "specializes" hyp(H) constr(A1) constr(A2) :=
+      specializes H (>> A1 A2).
+    Tactic Notation "specializes" hyp(H) constr(A1) constr(A2) constr(A3) :=
+      specializes H (>> A1 A2 A3).
+    Tactic Notation "specializes" hyp(H) constr(A1) constr(A2) constr(A3) constr(A4) :=
+      specializes H (>> A1 A2 A3 A4).
+    Tactic Notation "specializes" hyp(H) constr(A1) constr(A2) constr(A3) constr(A4) constr(A5) :=
+      specializes H (>> A1 A2 A3 A4 A5).
+
+適用(application)の実験的タクティック
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``fapply``\ は\ ``apply``\ の\ ``forwards``\ にもとづくバージョンです。
+
+::
+
+    Tactic Notation "fapply" constr(E) :=
+      let H := fresh in forwards H: E;
+      first [ apply H | eapply H | rapply H | hnf; apply H
+            | hnf; eapply H | applys H ].
+
+``sapply``\ は"super
+apply"の意味です。\ ``apply``\ 、\ ``eapply``\ 、\ ``applys``\ 、\ ``fapply``\ を試し、さらに最初にゴールの頭正規化(head-nomalize)をしようとします。
+
+::
+
+    Tactic Notation "sapply" constr(H) :=
+      first [ apply H | eapply H | rapply H | applys H
+            | hnf; apply H | hnf; eapply H | hnf; applys H
+            | fapply H ].
+
+仮定を追加する
+~~~~~~~~~~~~~~
+
+``lets_simpl H: E``\ は\ ``lets H: E``\ と同様ですが、仮定 H
+について\ ``simpl``\ を呼ぶ点が違います。
+
+::
+
+    Tactic Notation "lets_simpl" ident(H) ":" constr(E) :=
+      lets H: E; simpl in H.
+
+``lets_hnf H: E``\ は\ ``lets H: E``\ と同様ですが、\ ``hnf``\ を呼んで定義を頭正規形(head
+normal form)にする点が違います。
+
+::
+
+    Tactic Notation "lets_hnf" ident(H) ":" constr(E) :=
+      lets H: E; hnf in H.
+
+``lets_simpl: E``\ は\ ``lets_simpl H: E``\ と同様ですが、名前\ ``H``\ は自動的に選ばれます。
+
+::
+
+    Tactic Notation "lets_simpl" ":" constr(T) :=
+      let H := fresh in lets_simpl H: T.
+
+``lets_hnf: E``\ は\ ``lets_hnf H: E``\ と同様ですが、名前\ ``H``\ は自動的に選ばれます。
+
+::
+
+    Tactic Notation "lets_hnf" ":" constr(T) :=
+      let H := fresh in lets_hnf H: T.
+
+``put X: E``\ は\ ``pose (X := E)``\ と同義です。別に\ ``put: E``\ という構文もあります。
+
+::
+
+    Tactic Notation "put" ident(X) ":" constr(E) :=
+      pose (X := E).
+    Tactic Notation "put" ":" constr(E) :=
+      let X := fresh "X" in pose (X := E).
+
+トートロジーの適用
+~~~~~~~~~~~~~~~~~~
+
+``E``\ が事実とするとき、\ ``logic E``\ は\ ``assert H:E; [tauto | eapply H; clear H``]と同値です。例えば連言(AND式)\ ``A /\ B``\ を証明するとき、最初に\ ``A``\ を示し、次に\ ``A -> B``\ を示すのに、コマンド\ ``logic (foral A B, A -> (A -> B) -> A /\ B)``\ を使うのが便利です。
+
+::
+
+    Ltac logic_base E cont :=
+      assert (H:E); [ cont tt | eapply H; clear H ].
+
+    Tactic Notation "logic" constr(E) :=
+      logic_base E ltac:(fun _ => tauto).
+
+等式を法とした適用
+~~~~~~~~~~~~~~~~~~
+
+タクティック\ ``equates``\ は\ ``P x y z``\ の形のゴールを\ ``P x ?a z``\ に置き換え、サブゴール\ ``?a = y``\ を作ります。存在変数\ ``?a``\ が導入されることで、もとのゴールに適用できなかった補題が適用できるようになることがあります。例えば、\ ``forall n m, P n n m``\ という形の補題です。なぜなら、\ ``x``\ と\ ``y``\ は等しかったかもしれませんが、変換可能ではないからです。
+
+使用法は\ ``equates i1 ... ik``\ です。ここで各インデックス\ ``ij``\ は存在変数に置き換える引数の場所を、左端から数えたものです。もし\ ``0``\ が引数に与えられたら、ゴール全体が存在変数に置き換えられます。
+
+::
+
+    Section equatesLemma.
+    Variables
+      (A0 A1 : Type)
+      (A2 : forall (x1 : A1), Type)
+      (A3 : forall (x1 : A1) (x2 : A2 x1), Type)
+      (A4 : forall (x1 : A1) (x2 : A2 x1) (x3 : A3 x2), Type)
+      (A5 : forall (x1 : A1) (x2 : A2 x1) (x3 : A3 x2) (x4 : A4 x3), Type)
+      (A6 : forall (x1 : A1) (x2 : A2 x1) (x3 : A3 x2) (x4 : A4 x3) (x5 : A5 x4), Type).
+
+    Lemma equates_0 : forall (P Q:Prop),
+      P -> P = Q -> Q.
+    Proof. intros. subst. auto. Qed.
+
+    Lemma equates_1 :
+      forall (P:A0->Prop) x1 y1,
+      P y1 -> x1 = y1 -> P x1.
+    Proof. intros. subst. auto. Qed.
+
+    Lemma equates_2 :
+      forall y1 (P:A0->forall(x1:A1),Prop) x1 x2,
+      P y1 x2 -> x1 = y1 -> P x1 x2.
+    Proof. intros. subst. auto. Qed.
+
+    Lemma equates_3 :
+      forall y1 (P:A0->forall(x1:A1)(x2:A2 x1),Prop) x1 x2 x3,
+      P y1 x2 x3 -> x1 = y1 -> P x1 x2 x3.
+    Proof. intros. subst. auto. Qed.
+
+    Lemma equates_4 :
+      forall y1 (P:A0->forall(x1:A1)(x2:A2 x1)(x3:A3 x2),Prop) x1 x2 x3 x4,
+      P y1 x2 x3 x4 -> x1 = y1 -> P x1 x2 x3 x4.
+    Proof. intros. subst. auto. Qed.
+
+    Lemma equates_5 :
+      forall y1 (P:A0->forall(x1:A1)(x2:A2 x1)(x3:A3 x2)(x4:A4 x3),Prop) x1 x2 x3 x4 x5,
+      P y1 x2 x3 x4 x5 -> x1 = y1 -> P x1 x2 x3 x4 x5.
+    Proof. intros. subst. auto. Qed.
+
+    Lemma equates_6 :
+      forall y1 (P:A0->forall(x1:A1)(x2:A2 x1)(x3:A3 x2)(x4:A4 x3)(x5:A5 x4),Prop)
+      x1 x2 x3 x4 x5 x6,
+      P y1 x2 x3 x4 x5 x6 -> x1 = y1 -> P x1 x2 x3 x4 x5 x6.
+    Proof. intros. subst. auto. Qed.
+
+    End equatesLemma.
+
+    Ltac equates_lemma n :=
+      match nat_from_number n with
+      | 0 => constr:(equates_0)
+      | 1 => constr:(equates_1)
+      | 2 => constr:(equates_2)
+      | 3 => constr:(equates_3)
+      | 4 => constr:(equates_4)
+      | 5 => constr:(equates_5)
+      | 6 => constr:(equates_6)
+      end.
+
+    Ltac equates_one n :=
+      let L := equates_lemma n in
+      eapply L.
+
+    Ltac equates_several E cont :=
+      let all_pos := match type of E with
+        | List.list Boxer => constr:(E)
+        | _ => constr:((boxer E)::nil)
+        end in
+      let rec go pos :=
+         match pos with
+         | nil => cont tt
+         | (boxer ?n)::?pos' => equates_one n; [ instantiate; go pos' | ]
+         end in
+      go all_pos.
+
+    Tactic Notation "equates" constr(E) :=
+      equates_several E ltac:(fun _ => idtac).
+    Tactic Notation "equates" constr(n1) constr(n2) :=
+      equates (>> n1 n2).
+    Tactic Notation "equates" constr(n1) constr(n2) constr(n3) :=
+      equates (>> n1 n2 n3).
+    Tactic Notation "equates" constr(n1) constr(n2) constr(n3) constr(n4) :=
+      equates (>> n1 n2 n3 n4).
+
+``applys_eq H i1 .. iK``\ は\ ``equates i1 .. iK``\ の後最初のサブゴールに対して\ ``apply H``\ を行ったのと同じです。
+
+::
+
+    Tactic Notation "applys_eq" constr(H) constr(E) :=
+      equates_several E ltac:(fun _ => sapply H).
+    Tactic Notation "applys_eq" constr(H) constr(n1) constr(n2) :=
+      applys_eq H (>> n1 n2).
+    Tactic Notation "applys_eq" constr(H) constr(n1) constr(n2) constr(n3) :=
+      applys_eq H (>> n1 n2 n3).
+    Tactic Notation "applys_eq" constr(H) constr(n1) constr(n2) constr(n3) constr(n4) :=
+      applys_eq H (>> n1 n2 n3 n4).
+
+導入と一般化
+------------
+
+導入(Introduction)
+~~~~~~~~~~~~~~~~~~
+
+``introv``\ は依存性のない(non-dependent)仮定のみを指名するのに使います。
+
+-  ``introv``\ が\ ``forall x, H``\ という形のゴールに対して呼ばれると、
+   ゴールの頭部の\ ``forall``\ に限量されたすべての変数が導入されます。しかし、\ ``P -> Q``\ のような矢印コンストラクタの前の仮定は導入されません。
+-  ``introv``\ が\ ``forall x, H``\ でも\ ``P -> Q``\ でもない形のゴールに対して呼ばれると、\ ``forall x, H``\ または\ ``P -> Q.``\ の形になるまで、定義を展開(unfold)します。展開してもゴールが上記の形にならなかったとき、タクティック\ ``introv``\ は何もしません。
+
+``intros_all``\ は\ ``intro``\ を可能な限り繰り返します。\ ``intros``\ と対照的に、定義を途中で
+unfold します。否定の定義も unfold
+するので、\ ``intros_all``\ を\ ``forall x, P x -> ~Q``\ の形のゴールに適用すると、\ ``x``\ 、\ ``P x``\ 、\ ``Q``\ を導入し、ゴールに\ ``False``\ を残すことに注意します。
+
+``intros_hnf``\ は仮定を導入し、頭正規形にします。
+
+::
+
+    Tactic Notation "intro_hnf" :=
+      intro; match goal with H: _ |- _ => hnf in H end.
+
+一般化(Generalization)
+~~~~~~~~~~~~~~~~~~~~~~
+
+``gen X1 .. XN``\ は、変数\ ``XN``...\ ``X1``\ に対して\ ``generalize dependent``\ を呼ぶことの略記法です。なお、\ ``generalize``\ タクティックの慣習にならって、変数は逆順で一般化(generalize)されます。つまり、\ ``X1``\ が結果のゴールの最初の束縛変数になるということです。
+
+::
+
+    Tactic Notation "gen" ident(X1) :=
+      generalize dependent X1.
+    Tactic Notation "gen" ident(X1) ident(X2) :=
+      gen X2; gen X1.
+    Tactic Notation "gen" ident(X1) ident(X2) ident(X3) :=
+      gen X3; gen X2; gen X1.
+    Tactic Notation "gen" ident(X1) ident(X2) ident(X3) ident(X4)  :=
+      gen X4; gen X3; gen X2; gen X1.
+    Tactic Notation "gen" ident(X1) ident(X2) ident(X3) ident(X4) ident(X5) :=
+      gen X5; gen X4; gen X3; gen X2; gen X1.
+    Tactic Notation "gen" ident(X1) ident(X2) ident(X3) ident(X4) ident(X5)
+     ident(X6) :=
+      gen X6; gen X5; gen X4; gen X3; gen X2; gen X1.
+    Tactic Notation "gen" ident(X1) ident(X2) ident(X3) ident(X4) ident(X5)
+     ident(X6) ident(X7) :=
+      gen X7; gen X6; gen X5; gen X4; gen X3; gen X2; gen X1.
+    Tactic Notation "gen" ident(X1) ident(X2) ident(X3) ident(X4) ident(X5)
+     ident(X6) ident(X7) ident(X8) :=
+      gen X8; gen X7; gen X6; gen X5; gen X4; gen X3; gen X2; gen X1.
+    Tactic Notation "gen" ident(X1) ident(X2) ident(X3) ident(X4) ident(X5)
+     ident(X6) ident(X7) ident(X8) ident(X9) :=
+      gen X9; gen X8; gen X7; gen X6; gen X5; gen X4; gen X3; gen X2; gen X1.
+    Tactic Notation "gen" ident(X1) ident(X2) ident(X3) ident(X4) ident(X5)
+     ident(X6) ident(X7) ident(X8) ident(X9) ident(X10) :=
+      gen X10; gen X9; gen X8; gen X7; gen X6; gen X5; gen X4; gen X3; gen X2; gen X1.
+
+``generalizes X``\ は\ ``generalize X; clear X``\ の略記法です。これは依存性をサポートしないため、タクティック\ ``gen X``\ より弱いです。主にタクティック記述に利用することを意図したものです。
+
+::
+
+    Tactic Notation "generalizes" hyp(X) :=
+      generalize X; clear X.
+    Tactic Notation "generalizes" hyp(X1) hyp(X2) :=
+      generalizes X1; generalizes X2.
+    Tactic Notation "generalizes" hyp(X1) hyp(X2) hyp(X3) :=
+      generalizes X1 X2; generalizes X3.
+    Tactic Notation "generalizes" hyp(X1) hyp(X2) hyp(X3) hyp(X4) :=
+      generalizes X1 X2 X3; generalizes X4.
+
+名前付け(Naming)
+~~~~~~~~~~~~~~~~
+
+``sets X: E``\ は\ ``set (X := E) in *``\ と同じです。つまり、\ ``E``\ のすべての出現を新しいメタ変数\ ``X``\ に置換します。\ ``X``\ の定義は\ ``E``\ になります。
+
+::
+
+    Tactic Notation "sets" ident(X) ":" constr(E) :=
+      set (X := E) in *.
+
+``def_to_eq E X H``\ は、\ ``X := E``\ がローカルな定義のとき適用できます。適用されると仮定\ ``H: X = E``\ が追加され、\ ``X``\ の定義がクリアされます。\ ``def_to_eq_sym``\ も同様ですが、違いは、この場合、等式\ ``H: E = X``\ が生成されることです。
+
+::
+
+    Ltac def_to_eq X HX E :=
+      assert (HX : X = E) by reflexivity; clearbody X.
+    Ltac def_to_eq_sym X HX E :=
+      assert (HX : E = X) by reflexivity; clearbody X.
+
+``set_eq X H: E``\ は新しい名前\ ``X``\ についての等式\ ``H: X = E``\ を生成し、現在のゴールの\ ``E``\ を\ ``X``\ で置換します。構文\ ``set_eq X: E``\ および\ ``set_eq: E``\ も可能です。同様に、\ ``set_eq <- X H: E``\ は等式\ ``H: E = X``\ を生成します。
+
+``sets_eq X HX: E``\ も同様ですが、ゴールのすべての\ ``E``\ を\ ``X``\ で置換します。\ ``sets_eq X HX: E in H``\ は\ ``H``\ 内を置換します。\ ``set_eq X HX: E in |-``\ は何も置換しません。
+
+::
+
+    Tactic Notation "set_eq" ident(X) ident(HX) ":" constr(E) :=
+      set (X := E); def_to_eq X HX E.
+    Tactic Notation "set_eq" ident(X) ":" constr(E) :=
+      let HX := fresh "EQ" X in set_eq X HX: E.
+    Tactic Notation "set_eq" ":" constr(E) :=
+      let X := fresh "X" in set_eq X: E.
+
+    Tactic Notation "set_eq" "<-" ident(X) ident(HX) ":" constr(E) :=
+      set (X := E); def_to_eq_sym X HX E.
+    Tactic Notation "set_eq" "<-" ident(X) ":" constr(E) :=
+      let HX := fresh "EQ" X in set_eq <- X HX: E.
+    Tactic Notation "set_eq" "<-" ":" constr(E) :=
+      let X := fresh "X" in set_eq <- X: E.
+
+    Tactic Notation "sets_eq" ident(X) ident(HX) ":" constr(E) :=
+      set (X := E) in *; def_to_eq X HX E.
+    Tactic Notation "sets_eq" ident(X) ":" constr(E) :=
+      let HX := fresh "EQ" X in sets_eq X HX: E.
+    Tactic Notation "sets_eq" ":" constr(E) :=
+      let X := fresh "X" in sets_eq X: E.
+
+    Tactic Notation "sets_eq" "<-" ident(X) ident(HX) ":" constr(E) :=
+      set (X := E) in *; def_to_eq_sym X HX E.
+    Tactic Notation "sets_eq" "<-" ident(X) ":" constr(E) :=
+      let HX := fresh "EQ" X in sets_eq <- X HX: E.
+    Tactic Notation "sets_eq" "<-" ":" constr(E) :=
+      let X := fresh "X" in sets_eq <- X: E.
+
+    Tactic Notation "set_eq" ident(X) ident(HX) ":" constr(E) "in" hyp(H) :=
+      set (X := E) in H; def_to_eq X HX E.
+    Tactic Notation "set_eq" ident(X) ":" constr(E) "in" hyp(H) :=
+      let HX := fresh "EQ" X in set_eq X HX: E in H.
+    Tactic Notation "set_eq" ":" constr(E) "in" hyp(H) :=
+      let X := fresh "X" in set_eq X: E in H.
+
+    Tactic Notation "set_eq" "<-" ident(X) ident(HX) ":" constr(E) "in" hyp(H) :=
+      set (X := E) in H; def_to_eq_sym X HX E.
+    Tactic Notation "set_eq" "<-" ident(X) ":" constr(E) "in" hyp(H) :=
+      let HX := fresh "EQ" X in set_eq <- X HX: E in H.
+    Tactic Notation "set_eq" "<-" ":" constr(E) "in" hyp(H) :=
+      let X := fresh "X" in set_eq <- X: E in H.
+
+    Tactic Notation "set_eq" ident(X) ident(HX) ":" constr(E) "in" "|-" :=
+      set (X := E) in |-; def_to_eq X HX E.
+    Tactic Notation "set_eq" ident(X) ":" constr(E) "in" "|-" :=
+      let HX := fresh "EQ" X in set_eq X HX: E in |-.
+    Tactic Notation "set_eq" ":" constr(E) "in" "|-" :=
+      let X := fresh "X" in set_eq X: E in |-.
+
+    Tactic Notation "set_eq" "<-" ident(X) ident(HX) ":" constr(E) "in" "|-" :=
+      set (X := E) in |-; def_to_eq_sym X HX E.
+    Tactic Notation "set_eq" "<-" ident(X) ":" constr(E) "in" "|-" :=
+      let HX := fresh "EQ" X in set_eq <- X HX: E in |-.
+    Tactic Notation "set_eq" "<-" ":" constr(E) "in" "|-" :=
+      let X := fresh "X" in set_eq <- X: E in |-.
+
+``induction``\ タクティックは通常、情報を失いますが、\ ``gen_eq X: E``\ は、\ ``induction``\ のこの限界を避けて等式を導入することを目的としたタクティックです。\ ``gen_eq E as X``\ 項\ ``E``\ のすべての出現を新しい変数\ ``X``\ で置換し、等式\ ``X = E``\ を現在の結論の追加の仮定とします。言い換えると、結論\ ``C``\ は\ ``(X = E) -> C``\ になります。\ ``gen_eq: E``\ および\ ``gen_eq: E as X``\ も可能です。
+
+::
+
+    Tactic Notation "gen_eq" ident(X) ":" constr(E) :=
+      let EQ := fresh in sets_eq X EQ: E; revert EQ.
+    Tactic Notation "gen_eq" ":" constr(E) :=
+      let X := fresh "X" in gen_eq X: E.
+    Tactic Notation "gen_eq" ":" constr(E) "as" ident(X) :=
+      gen_eq X: E.
+    Tactic Notation "gen_eq" ident(X1) ":" constr(E1) ","
+      ident(X2) ":" constr(E2) :=
+      gen_eq X2: E2; gen_eq X1: E1.
+    Tactic Notation "gen_eq" ident(X1) ":" constr(E1) ","
+      ident(X2) ":" constr(E2) "," ident(X3) ":" constr(E3) :=
+      gen_eq X3: E3; gen_eq X2: E2; gen_eq X1: E1.
+
+``sets_let X``\ はゴールの最初の
+let-式を見つけ出し、その本体を\ ``X``\ と名付けます。\ ``sets_eq_let X``\ も同様ですが、明示的に等式を作ることが違います。タクティック\ ``sets_let X in H``\ と\ ``sets_eq_let X in H``\ により特定の仮定を指定することができます(デフォルトでは、\ ``let``\ を含む最初のものが対象となります)。
+
+既知の限界: ltac で項内の複数の
+let-inコンストラクタに対する名前付けのサポートをすることは不可能なようです。
+
+::
+
+    Ltac sets_let_base tac :=
+      match goal with
+      | |- context[let _ := ?E in _] => tac E; cbv zeta
+      | H: context[let _ := ?E in _] |- _ => tac E; cbv zeta in H
+      end.
+
+    Ltac sets_let_in_base H tac :=
+      match type of H with context[let _ := ?E in _] =>
+        tac E; cbv zeta in H end.
+
+    Tactic Notation "sets_let" ident(X) :=
+      sets_let_base ltac:(fun E => sets X: E).
+    Tactic Notation "sets_let" ident(X) "in" hyp(H) :=
+      sets_let_in_base H ltac:(fun E => sets X: E).
+    Tactic Notation "sets_eq_let" ident(X) :=
+      sets_let_base ltac:(fun E => sets_eq X: E).
+    Tactic Notation "sets_eq_let" ident(X) "in" hyp(H) :=
+      sets_let_in_base H ltac:(fun E => sets_eq X: E).
+
+書き換え
+--------
+
+書き換え(Rewriting)
+~~~~~~~~~~~~~~~~~~~
+
+``rewrite_all E``\ は\ ``rewrite E``\ を可能な限り繰り返します。注意:
+このタクティックは簡単に無限ループに陥ります。右から左への書き換えや仮定への適用の構文は\ ``rewrite``\ と同様です。
+
+::
+
+    Tactic Notation "rewrite_all" constr(E) :=
+      repeat rewrite E.
+    Tactic Notation "rewrite_all" "<-" constr(E) :=
+      repeat rewrite <- E.
+    Tactic Notation "rewrite_all" constr(E) "in" ident(H) :=
+      repeat rewrite E in H.
+    Tactic Notation "rewrite_all" "<-" constr(E) "in" ident(H) :=
+      repeat rewrite <- E in H.
+    Tactic Notation "rewrite_all" constr(E) "in" "*" :=
+      repeat rewrite E in *.
+    Tactic Notation "rewrite_all" "<-" constr(E) "in" "*" :=
+      repeat rewrite <- E in *.
+
+``asserts_rewrite E``\ は等式\ ``E``\ の成立を主張し(対応するサブゴールを生成します)、現在のゴールの対応する部分をすぐに書き換えます。これによって、等式に名前を付けて後でそれを消すことを避けることができます。右から左への書き換えや仮定への適用の構文は\ ``rewrite``\ と同様です。なお、タクティック\ ``replaces``\ も同様のはたらきをします。
+
+::
+
+    Ltac asserts_rewrite_tactic E action :=
+      let EQ := fresh in (assert (EQ : E);
+      [ idtac | action EQ; clear EQ ]).
+
+    Tactic Notation "asserts_rewrite" constr(E) :=
+      asserts_rewrite_tactic E ltac:(fun EQ => rewrite EQ).
+    Tactic Notation "asserts_rewrite" "<-" constr(E) :=
+      asserts_rewrite_tactic E ltac:(fun EQ => rewrite <- EQ).
+    Tactic Notation "asserts_rewrite" constr(E) "in" hyp(H) :=
+      asserts_rewrite_tactic E ltac:(fun EQ => rewrite EQ in H).
+    Tactic Notation "asserts_rewrite" "<-" constr(E) "in" hyp(H) :=
+      asserts_rewrite_tactic E ltac:(fun EQ => rewrite <- EQ in H).
+
+``cuts_rewrite E``\ は\ ``asserts_rewrite E``\ と同様ですが、サブゴールの順番が変わります。
+
+::
+
+    Ltac cuts_rewrite_tactic E action :=
+      let EQ := fresh in (cuts EQ: E;
+      [ action EQ; clear EQ | idtac ]).
+
+    Tactic Notation "cuts_rewrite" constr(E) :=
+      cuts_rewrite_tactic E ltac:(fun EQ => rewrite EQ).
+    Tactic Notation "cuts_rewrite" "<-" constr(E) :=
+      cuts_rewrite_tactic E ltac:(fun EQ => rewrite <- EQ).
+    Tactic Notation "cuts_rewrite" constr(E) "in" hyp(H) :=
+      cuts_rewrite_tactic E ltac:(fun EQ => rewrite EQ in H).
+    Tactic Notation "cuts_rewrite" "<-" constr(E) "in" hyp(H) :=
+      cuts_rewrite_tactic E ltac:(fun EQ => rewrite <- EQ in H).
+
+``rewrite_except H EQ``\ は、仮定\ ``H``\ 以外のすべての部分で等式\ ``EQ``\ を書き換えます。
+
+::
+
+    Ltac rewrite_except H EQ :=
+      let K := fresh in let T := type of H in
+      set (K := T) in H;
+      rewrite EQ in *; unfold K in H; clear K.
+
+``rewrites E at K``\ は\ ``E``\ が\ ``T1 = T2``\ の形のときに適用できます。このタクティックにより、現在のゴールにおける\ ``T1``\ の\ ``K``\ 番目の出現が\ ``T2``\ に書き換えられます。構文\ ``rewrites <- E at K``\ と\ ``rewrites E at K in H``\ も可能です。
+
+置き換え(Replace)
+~~~~~~~~~~~~~~~~~
+
+``replaces E with F``\ は\ ``replace E with F``\ と同様ですが、等式\ ``E = F``\ が最初のサブゴールとして生成される点が違います。構文\ ``replaces E with F in H``\ も可能です。\ ``replace``\ と対照的に、\ ``replaces``\ は\ ``assumption``\ によって等式を解こうとはしません。なお、\ ``replaces E with F``\ は\ ``asserts_rewrite (E = F)``\ と同様です。
+
+::
+
+    Tactic Notation "replaces" constr(E) "with" constr(F) :=
+      let T := fresh in assert (T: E = F); [ | replace E with F; clear T ].
+
+    Tactic Notation "replaces" constr(E) "with" constr(F) "in" hyp(H) :=
+      let T := fresh in assert (T: E = F); [ | replace E with F in H; clear T ].
+
+``replaces E at K with F``\ は現在のゴールの\ ``E``\ の\ ``K``\ 番目の出現を\ ``F``\ に置き換えます。構文\ ``replaces E at K with F in H``\ も可能です。
+
+::
+
+    Tactic Notation "replaces" constr(E) "at" constr(K) "with" constr(F) :=
+      let T := fresh in assert (T: E = F); [ | rewrites T at K; clear T ].
+
+    Tactic Notation "replaces" constr(E) "at" constr(K) "with" constr(F) "in" hyp(H) :=
+      let T := fresh in assert (T: E = F); [ | rewrites T at K in H; clear T ].
+
+名前変え(リネーム、Renaming)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``renames X1 to Y1, ..., XN to YN``\ はリネーム操作\ ``rename Xi into Yi``\ の列の略記法です。
+
+::
+
+    Tactic Notation "renames" ident(X1) "to" ident(Y1) :=
+      rename X1 into Y1.
+    Tactic Notation "renames" ident(X1) "to" ident(Y1) ","
+     ident(X2) "to" ident(Y2) :=
+      renames X1 to Y1; renames X2 to Y2.
+    Tactic Notation "renames" ident(X1) "to" ident(Y1) ","
+     ident(X2) "to" ident(Y2) "," ident(X3) "to" ident(Y3) :=
+      renames X1 to Y1; renames X2 to Y2, X3 to Y3.
+    Tactic Notation "renames" ident(X1) "to" ident(Y1) ","
+     ident(X2) "to" ident(Y2) "," ident(X3) "to" ident(Y3) ","
+     ident(X4) "to" ident(Y4) :=
+      renames X1 to Y1; renames X2 to Y2, X3 to Y3, X4 to Y4.
+    Tactic Notation "renames" ident(X1) "to" ident(Y1) ","
+     ident(X2) "to" ident(Y2) "," ident(X3) "to" ident(Y3) ","
+     ident(X4) "to" ident(Y4) "," ident(X5) "to" ident(Y5) :=
+      renames X1 to Y1; renames X2 to Y2, X3 to Y3, X4 to Y4, X5 to Y5.
+    Tactic Notation "renames" ident(X1) "to" ident(Y1) ","
+     ident(X2) "to" ident(Y2) "," ident(X3) "to" ident(Y3) ","
+     ident(X4) "to" ident(Y4) "," ident(X5) "to" ident(Y5) ","
+     ident(X6) "to" ident(Y6) :=
+      renames X1 to Y1; renames X2 to Y2, X3 to Y3, X4 to Y4, X5 to Y5, X6 to Y6.
+
+定義の展開(Unfolding)
+~~~~~~~~~~~~~~~~~~~~~
+
+``unfolds``\ はゴールの先頭の定義を展開します。つまり、ゴールが\ ``P x1 ... xN``\ の形のとき、\ ``unfold P``\ を呼びます。ゴールが等式のとき、左辺の先頭の定数を展開しようとします。それができないとき、右辺について試みます。ゴールが積のとき、最初に\ ``intros``\ を呼びます。
+
+::
+
+    Ltac apply_to_head_of E cont :=
+      let go E :=
+        let P := get_head E in cont P in
+      match E with
+      | forall _,_ => intros; apply_to_head_of E cont
+      | ?A = ?B => first [ go A | go B ]
+      | ?A => go A
+      end.
+
+    Ltac unfolds_base :=
+      match goal with |- ?G =>
+       apply_to_head_of G ltac:(fun P => unfold P) end.
+
+    Tactic Notation "unfolds" :=
+      unfolds_base.
+
+``unfolds in H``\ は仮定\ ``H``\ の冒頭の定義を展開します。つまり\ ``H``\ が型\ ``P x1 ... xN``\ ならば、\ ``unfold P in H``\ を呼びます。
+
+::
+
+    Ltac unfolds_in_base H :=
+      match type of H with ?G =>
+       apply_to_head_of G ltac:(fun P => unfold P in H) end.
+
+    Tactic Notation "unfolds" "in" hyp(H) :=
+      unfolds_in_base H.
+
+``unfolds P1,..,PN``\ は\ ``unfold P1,..,PN in *``\ の略記法です。
+
+::
+
+    Tactic Notation "unfolds" reference(F1) :=
+      unfold F1 in *.
+    Tactic Notation "unfolds" reference(F1) "," reference(F2) :=
+      unfold F1,F2 in *.
+    Tactic Notation "unfolds" reference(F1) "," reference(F2)
+     "," reference(F3) :=
+      unfold F1,F2,F3 in *.
+    Tactic Notation "unfolds" reference(F1) "," reference(F2)
+     "," reference(F3) "," reference(F4) :=
+      unfold F1,F2,F3,F4 in *.
+    Tactic Notation "unfolds" reference(F1) "," reference(F2)
+     "," reference(F3) "," reference(F4) "," reference(F5) :=
+      unfold F1,F2,F3,F4,F5 in *.
+    Tactic Notation "unfolds" reference(F1) "," reference(F2)
+     "," reference(F3) "," reference(F4) "," reference(F5) "," reference(F6) :=
+      unfold F1,F2,F3,F4,F5,F6 in *.
+    Tactic Notation "unfolds" reference(F1) "," reference(F2)
+     "," reference(F3) "," reference(F4) "," reference(F5)
+     "," reference(F6) "," reference(F7) :=
+      unfold F1,F2,F3,F4,F5,F6,F7 in *.
+    Tactic Notation "unfolds" reference(F1) "," reference(F2)
+     "," reference(F3) "," reference(F4) "," reference(F5)
+     "," reference(F6) "," reference(F7) "," reference(F8) :=
+      unfold F1,F2,F3,F4,F5,F6,F7,F8 in *.
+
+``folds P1,..,PN``\ は\ ``fold P1 in *; ..; fold PN in *``\ の略記法です。
+
+::
+
+    Tactic Notation "folds" constr(H) :=
+      fold H in *.
+    Tactic Notation "folds" constr(H1) "," constr(H2) :=
+      folds H1; folds H2.
+    Tactic Notation "folds" constr(H1) "," constr(H2) "," constr(H3) :=
+      folds H1; folds H2; folds H3.
+    Tactic Notation "folds" constr(H1) "," constr(H2) "," constr(H3)
+     "," constr(H4) :=
+      folds H1; folds H2; folds H3; folds H4.
+    Tactic Notation "folds" constr(H1) "," constr(H2) "," constr(H3)
+     "," constr(H4) "," constr(H5) :=
+      folds H1; folds H2; folds H3; folds H4; folds H5.
+
+単純化(Simplification)
+~~~~~~~~~~~~~~~~~~~~~~
+
+``simpls``\ は\ ``simpl in *``\ の略記法です。
+
+::
+
+    Tactic Notation "simpls" :=
+      simpl in *.
+
+``simpls P1,..,PN``\ は\ ``simpl P1 in *; ..; simpl PN in *``\ の略記法です。
+
+::
+
+    Tactic Notation "simpls" reference(F1) :=
+      simpl F1 in *.
+    Tactic Notation "simpls" reference(F1) "," reference(F2) :=
+      simpls F1; simpls F2.
+    Tactic Notation "simpls" reference(F1) "," reference(F2)
+     "," reference(F3) :=
+      simpls F1; simpls F2; simpls F3.
+    Tactic Notation "simpls" reference(F1) "," reference(F2)
+     "," reference(F3) "," reference(F4) :=
+      simpls F1; simpls F2; simpls F3; simpls F4.
+
+``unsimpl E``\ は\ ``X``\ のすべての出現を\ ``E``\ に置き換えます。ここで\ ``X``\ は\ ``E``\ に\ ``simpl``\ を適用すると得られるであろう結果です。\ ``simpl``\ が単純化し過ぎたときに
+undo をするのに便利です。
+
+::
+
+    Tactic Notation "unsimpl" constr(E) :=
+      let F := (eval simpl in E) in change F with E.
+
+``unsimpl E in H``\ は\ ``unsimpl E``\ と同様ですが、特定の仮定\ ``H``\ の中だけに適用されます。
+
+::
+
+    Tactic Notation "unsimpl" constr(E) "in" hyp(H) :=
+      let F := (eval simpl in E) in change F with E in H.
+
+``unsimpl E in *``\ は\ ``unsimpl E``\ を可能なすべての場所に適用します。\ ``unsimpls E``\ はその別名です。
+
+::
+
+    Tactic Notation "unsimpl" constr(E) "in" "*" :=
+      let F := (eval simpl in E) in change F with E in *.
+    Tactic Notation "unsimpls" constr(E) :=
+      unsimpl E in *.
+
+``nosimpl t``\ はCoqの項\ ``t``\ について、ある形の単純化が適用されないようにします。このからくりの詳細は
+Gonthier の仕事を見てください。
+
+::
+
+    Notation "'nosimpl' t" := (match tt with tt => t end)
+      (at level 10).
+
+評価(Evaluation)
+~~~~~~~~~~~~~~~~
+
+::
+
+    Tactic Notation "hnfs" := hnf in *.
+
+置換(Substitution)
+~~~~~~~~~~~~~~~~~~
+
+``substs``\ は\ ``subst``\ は同様にはたらきますが、違いは、\ ``substs``\ はコンテキストに循環する等式があっても失敗しないことです。
+
+::
+
+    Tactic Notation "substs" :=
+      repeat (match goal with H: ?x = ?y |- _ =>
+                first [ subst x | subst y ] end).
+
+次は\ ``substs below``\ の実装です。これは、証明コンテキストの指定されたポジションより下のすべての仮定に\ ``subst``\ を呼ぶことを可能にするものです。
+
+::
+
+    Ltac substs_below limit :=
+      match goal with H: ?T |- _ =>
+      match T with
+      | limit => idtac
+      | ?x = ?y =>
+        first [ subst x; substs_below limit
+              | subst y; substs_below limit
+              | generalizes H; substs_below limit; intro ]
+      end end.
+
+``substs below body E``\ は、コンテキストの中で本体が\ ``E``\ である最初の仮定より下に現れるすべての等式に\ ``subst``\ を適用します。もしコンテキストにそのような仮定がないときには、\ ``subst``\ と同値です。例えば、\ ``H``\ が仮定のとき、\ ``substs below H``\ は仮定\ ``H``\ より下のすべての等式を置換します。
+
+::
+
+    Tactic Notation "substs" "below" "body" constr(M) :=
+      substs_below M.
+
+``substs below H``\ はコンテキストで\ ``H``\ で指定された仮定より下に現れるすべての等式に\ ``subst``\ を適用します。なお、現在の実装は技術的に間違いがあります。それは、同じ本体を持つ違う仮定を区別できないからです。
+
+::
+
+    Tactic Notation "substs" "below" hyp(H) :=
+      match type of H with ?M => substs below body M end.
+
+``subst_hyp H``\ は\ ``H``\ に含まれる等式を置換します。このふるまいは
+LibDataで拡張されます。 --(今後の課題)
+
+::
+
+    Ltac subst_hyp_base H :=
+      match type of H with
+      | ?x = ?y => first [ subst x | subst y ]
+      end.
+
+    Tactic Notation "subst_hyp" hyp(H) := subst_hyp_base H.
+
+``intro_subst``\ は\ ``intro H; subst_hyp H``\ の略記法です。現在のゴールの先頭の等式を導入し置換します。
+
+::
+
+    Tactic Notation "intro_subst" :=
+      let H := fresh "TEMP" in intros H; subst_hyp H.
+
+``subst_local``\ はコンテキストのすべてのローカル定義を置換します。
+
+::
+
+    Ltac subst_local :=
+      repeat match goal with H:=_ |- _ => subst H end.
+
+``subst_eq E``\ は等式\ ``x = t``\ をとり、ゴールのすべての場所で\ ``x``\ を\ ``t``\ に置き換えます。
+
+::
+
+    Ltac subst_eq_base E :=
+      let H := fresh "TEMP" in lets H: E; subst_hyp H.
+
+    Tactic Notation "subst_eq" constr(E) :=
+      subst_eq_base E.
+
+proof irrelevance を扱うタクティック
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Require Import ProofIrrelevance.
+
+``pi_rewrite E``\ は型\ ``Prop``\ の\ ``E``\ を新しい単一化変数に置き換えます。これから、proof
+irrelevance
+を利用する現実的な方法になります。明示的に\ ``rewrite (proof_irrelevance E E')``\ と書く必要はありません。\ ``E'``\ が大きな式であるとき特に有効です。(訳注:
+Proof Irrelevance
+は、言ってみれば、同じ命題の証明オブジェクトをすべて同一視してしまうもの。)
+
+::
+
+    Ltac pi_rewrite_base E rewrite_tac :=
+      let E' := fresh in let T := type of E in evar (E':T);
+      rewrite_tac (@proof_irrelevance _ E E'); subst E'.
+
+    Tactic Notation "pi_rewrite" constr(E) :=
+      pi_rewrite_base E ltac:(fun X => rewrite X).
+    Tactic Notation "pi_rewrite" constr(E) "in" hyp(H) :=
+      pi_rewrite_base E ltac:(fun X => rewrite X in H).
+
+等式を証明する
+~~~~~~~~~~~~~~
+
+``fequal``\ は\ ``f_equal``\ の変種で、n個組の間の等式をよりうまく扱います。
+
+::
+
+    Ltac fequal_base :=
+      let go := f_equal; [ fequal_base | ] in
+      match goal with
+      | |- (_,_,_) = (_,_,_) => go
+      | |- (_,_,_,_) = (_,_,_,_) => go
+      | |- (_,_,_,_,_) = (_,_,_,_,_) => go
+      | |- (_,_,_,_,_,_) = (_,_,_,_,_,_) => go
+      | |- _ => f_equal
+      end.
+
+    Tactic Notation "fequal" :=
+      fequal_base.
+
+``fequals``\ は\ ``fequal``\ と同様ですが、違う点は、すべての簡単なサブゴールを\ ``reflexivity``\ と\ ``congruence``\ (および
+proof-irrelevance
+原理)を使って解こうとします。\ ``fequals``\ は\ ``f x1 .. xN = f y1 .. yN``\ という形のゴールに適用することができ、\ ``xi = yi``\ という形のサブゴールをいくつか生成します。
+
+::
+
+    Ltac fequal_post :=
+      first [ reflexivity | congruence | apply proof_irrelevance | idtac ].
+
+    Tactic Notation "fequals" :=
+      fequal; fequal_post.
+
+``fequals_rec``\ は\ ``fequals``\ を再帰的に呼び出します。これは\ ``repeat (progress fequals)``\ と同値です。
+
+::
+
+    Tactic Notation "fequals_rec" :=
+      repeat (progress fequals).
+
+反転(Inversion)
+---------------
+
+基本反転(Basic inversion)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``invert keep H``\ は\ ``inversion H``\ と同様ですが、得られた事実をすべてゴールに置く点が違います。キーワード\ ``keep``\ は仮定\ ``H``\ を除去しないでおくことを意味します。
+
+::
+
+    Tactic Notation "invert" "keep" hyp(H) :=
+      pose ltac_mark; inversion H; gen_until_mark.
+
+``invert keep H as X1 .. XN``\ は\ ``inversion H as ...``\ と同様ですが、明示的に名前を付けなければならないのが変数ではない仮定だけである点が違います。これは、\ ``introv``\ が仮定だけに名前を付けるのと同じ流儀です。
+
+::
+
+    Tactic Notation "invert" "keep" hyp(H) "as" simple_intropattern(I1) :=
+      invert keep H; introv I1.
+    Tactic Notation "invert" "keep" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) :=
+      invert keep H; introv I1 I2.
+    Tactic Notation "invert" "keep" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3) :=
+      invert keep H; introv I1 I2 I3.
+
+``invert H``\ は\ ``inversion H``\ と同様ですが、得られた事実をすべてゴールに置き、仮定\ ``H``\ をクリアする点が違います。言い換えると、これは\ ``invert keep H; clear H``\ と同値です。
+
+::
+
+    Tactic Notation "invert" hyp(H) :=
+      invert keep H; clear H.
+
+``invert H as X1 .. XN``\ は\ ``invert keep H as X1 .. XN``\ と同様ですが、仮定\ ``H``\ もクリアする点が違います。
+
+::
+
+    Tactic Notation "invert_tactic" hyp(H) tactic(tac) :=
+      let H' := fresh in rename H into H'; tac H'; clear H'.
+    Tactic Notation "invert" hyp(H) "as" simple_intropattern(I1) :=
+      invert_tactic H (fun H => invert keep H as I1).
+    Tactic Notation "invert" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) :=
+      invert_tactic H (fun H => invert keep H as I1 I2).
+    Tactic Notation "invert" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3) :=
+      invert_tactic H (fun H => invert keep H as I1 I2 I3).
+
+置換(substitution)を伴う反転(inversion)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ここで定義する反転タクティックは、\ ``inversion``\ によって生成される依存等式をproof
+irrelevance を使って除去できます。
+
+``inverts keep H``\ は\ ``invert keep H``\ と同様ですが、inversion
+によって生成されたすべての等式に\ ``subst``\ を適用する点が違います。
+
+::
+
+    Tactic Notation "inverts" "keep" hyp(H) :=
+      inverts_tactic H ltac:(intro) ltac:(intro) ltac:(intro)
+                       ltac:(intro) ltac:(intro) ltac:(intro).
+
+``inverts keep H as X1 .. XN``\ は\ ``invert keep H as X1 .. XN``\ と同様ですが、inversion
+によって生成されたすべての等式に\ ``subst``\ を適用する点が違います。
+
+::
+
+    Tactic Notation "inverts" "keep" hyp(H) "as" simple_intropattern(I1) :=
+      inverts_tactic H ltac:(intros I1)
+       ltac:(intro) ltac:(intro) ltac:(intro) ltac:(intro) ltac:(intro).
+    Tactic Notation "inverts" "keep" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) :=
+      inverts_tactic H ltac:(intros I1) ltac:(intros I2)
+       ltac:(intro) ltac:(intro) ltac:(intro) ltac:(intro).
+    Tactic Notation "inverts" "keep" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3) :=
+      inverts_tactic H ltac:(intros I1) ltac:(intros I2) ltac:(intros I3)
+       ltac:(intro) ltac:(intro) ltac:(intro).
+    Tactic Notation "inverts" "keep" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3) simple_intropattern(I4) :=
+      inverts_tactic H ltac:(intros I1) ltac:(intros I2) ltac:(intros I3)
+       ltac:(intros I4) ltac:(intro) ltac:(intro).
+    Tactic Notation "inverts" "keep" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3) simple_intropattern(I4)
+     simple_intropattern(I5) :=
+      inverts_tactic H ltac:(intros I1) ltac:(intros I2) ltac:(intros I3)
+       ltac:(intros I4) ltac:(intros I5) ltac:(intro).
+    Tactic Notation "inverts" "keep" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3) simple_intropattern(I4)
+     simple_intropattern(I5) simple_intropattern(I6) :=
+      inverts_tactic H ltac:(intros I1) ltac:(intros I2) ltac:(intros I3)
+       ltac:(intros I4) ltac:(intros I5) ltac:(intros I6).
+
+``inverts H``\ は\ ``inverts keep H``\ と同様ですが、仮定\ ``H``\ をクリアする点が違います。
+
+::
+
+    Tactic Notation "inverts" hyp(H) :=
+      inverts keep H; clear H.
+
+``inverts H as X1 .. XN``\ は\ ``inverts keep H as X1 .. XN``\ と同様ですが、仮定\ ``H``\ もクリアする点が違います。
+
+::
+
+    Tactic Notation "inverts_tactic" hyp(H) tactic(tac) :=
+      let H' := fresh in rename H into H'; tac H'; clear H'.
+    Tactic Notation "inverts" hyp(H) "as" simple_intropattern(I1) :=
+      invert_tactic H (fun H => inverts keep H as I1).
+    Tactic Notation "inverts" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) :=
+      invert_tactic H (fun H => inverts keep H as I1 I2).
+    Tactic Notation "inverts" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3) :=
+      invert_tactic H (fun H => inverts keep H as I1 I2 I3).
+    Tactic Notation "inverts" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3) simple_intropattern(I4) :=
+      invert_tactic H (fun H => inverts keep H as I1 I2 I3 I4).
+    Tactic Notation "inverts" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3) simple_intropattern(I4)
+     simple_intropattern(I5) :=
+      invert_tactic H (fun H => inverts keep H as I1 I2 I3 I4 I5).
+    Tactic Notation "inverts" hyp(H) "as" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3) simple_intropattern(I4)
+     simple_intropattern(I5) simple_intropattern(I6) :=
+      invert_tactic H (fun H => inverts keep H as I1 I2 I3 I4 I5 I6).
+
+``inverts H as``\ は仮定\ ``H``\ に対して inversion
+を行ない、生成された等式を置換し、そして、別の新しく生成された仮定を、ユーザが明示的に名前を付けられるようにゴールに置きます。\ ``inverts keep H as``\ は同様ですが、\ ``H``\ をクリアしない点が違います。
+
+-  
+
+   -  TODO: 上述の\ ``inverts``\ をこれを使って再実装すること
+
+   Ltac inverts\_as\_tactic H := let rec go tt := match goal with \| \|-
+   (ltac\_Mark -> \_) => intros \_ \| \|- (?x = ?y -> \_) => let H :=
+   fresh "TEMP" in intro H; first [ subst x \| subst y ]; go tt \| \|-
+   (existT ?P ?p ?x = existT ?P ?p ?y -> \_) => let H := fresh in intro
+   H; generalize (@inj\_pair2 \_ P p x y H); clear H; go tt \| \|-
+   (forall \_, \_) => intro; let H := get\_last\_hyp tt in
+   mark\_to\_generalize H; go tt end in pose ltac\_mark; inversion H;
+   generalize ltac\_mark; gen\_until\_mark; go tt; gen\_to\_generalize;
+   unfolds ltac\_to\_generalize; unfold eq' in \*.
+
+   Tactic Notation "inverts" "keep" hyp(H) "as" := inverts\_as\_tactic
+   H.
+
+   Tactic Notation "inverts" hyp(H) "as" := inverts\_as\_tactic H; clear
+   H.
+
+   Tactic Notation "inverts" hyp(H) "as" simple\_intropattern(I1)
+   simple\_intropattern(I2) simple\_intropattern(I3)
+   simple\_intropattern(I4) simple\_intropattern(I5)
+   simple\_intropattern(I6) simple\_intropattern(I7) := inverts H as;
+   introv I1 I2 I3 I4 I5 I6 I7. Tactic Notation "inverts" hyp(H) "as"
+   simple\_intropattern(I1) simple\_intropattern(I2)
+   simple\_intropattern(I3) simple\_intropattern(I4)
+   simple\_intropattern(I5) simple\_intropattern(I6)
+   simple\_intropattern(I7) simple\_intropattern(I8) := inverts H as;
+   introv I1 I2 I3 I4 I5 I6 I7 I8.
+
+置換を伴う注入(Injection)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``injects``\ の背後の実装
+
+::
+
+    Ltac injects_tactic H :=
+      let rec go _ :=
+        match goal with
+        | |- (ltac_Mark -> _) => intros _
+        | |- (?x = ?y -> _) => let H := fresh in intro H;
+                               first [ subst x | subst y | idtac ];
+                               go tt
+        end in
+      generalize ltac_mark; injection H; go tt.
+
+``injects keep H``\ は\ ``C a1 .. aN = C b1 .. bN``\ の形の仮定\ ``H``\ をとって、生成されたすべての等式\ ``ai = bi``\ を置換します。
+
+::
+
+    Tactic Notation "injects" "keep" hyp(H) :=
+      injects_tactic H.
+
+``injects H``\ は\ ``injects keep H``\ と同様ですが、仮定\ ``H``\ をクリアする点が違います。
+
+::
+
+    Tactic Notation "injects" hyp(H) :=
+      injects_tactic H; clear H.
+
+``inject H as X1 .. XN``\ は\ ``injection``\ に続けて\ ``intros X1 .. XN``\ を行うのと同様です。
+
+::
+
+    Tactic Notation "inject" hyp(H) :=
+      injection H.
+    Tactic Notation "inject" hyp(H) "as" ident(X1) :=
+      injection H; intros X1.
+    Tactic Notation "inject" hyp(H) "as" ident(X1) ident(X2) :=
+      injection H; intros X1 X2.
+    Tactic Notation "inject" hyp(H) "as" ident(X1) ident(X2) ident(X3) :=
+      injection H; intros X1 X2 X3.
+    Tactic Notation "inject" hyp(H) "as" ident(X1) ident(X2) ident(X3)
+     ident(X4) :=
+      injection H; intros X1 X2 X3 X4.
+    Tactic Notation "inject" hyp(H) "as" ident(X1) ident(X2) ident(X3)
+     ident(X4) ident(X5) :=
+      injection H; intros X1 X2 X3 X4 X5.
+
+置換を伴う反転と注入 -- おおざっぱな実装
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+この節で提供するタクティック\ ``inversions``\ および\ ``injections``\ はそれぞれ\ ``inverts``\ および\ ``injects``\ と同様ですが、置換する等式は、新しく生成されたものに限らずすべてのコンテキストの等式である点が違います。対応する実装は、より簡単になっています。
+
+``inversions keep H``\ は\ ``inversions H``\ と同様ですが、仮定\ ``H``\ をクリアしません。
+
+::
+
+    Tactic Notation "inversions" "keep" hyp(H) :=
+      inversion H; subst.
+
+``inversions H``\ は\ ``inversion H``\ に続いて\ ``subst``\ と\ ``clear H``\ を行うことの略記法です。これは\ ``inverts H``\ のおおざっぱな実装で、証明コンテキストが既に等式を含んでいるときには、問題のある振る舞いをします。これは、より良い実装(``inverts H``)が遅すぎる場合のために用意してあります。
+
+``injections keep H``\ は\ ``injection H``\ に続いて\ ``intros``\ と\ ``subst``\ を行うことの略記法です。これは\ ``injects keep H``\ のおおざっぱな実装で、証明コンテキストが既に等式を含んでいるとき、あるいはゴールが\ ``forall``\ または含意で始まるときには、問題のある振る舞いをします。
+
+``injections H``\ は\ ``injection H``\ に続いて\ ``intros``\ 、\ ``clear H``\ 、\ ``subst``\ を順に行うのと同じです。これは\ ``injects H``\ のおおざっぱな実装で、証明コンテキストが既に等式を含んでいるとき、あるいはゴールが\ ``forall``\ または含意で始まるときには、問題のある振る舞いをします。
+
+場合分け
+~~~~~~~~
+
+``cases``\ は\ ``case_eq E``\ と同様ですが、等式をゴールではなくコンテキストに作る点と、作る等式の右辺と左辺が逆であることが違います。構文\ ``cases E as H``\ が可能で、仮定の名前\ ``H``\ を特定します。
+
+::
+
+    Tactic Notation "cases" constr(E) "as" ident(H) :=
+      let X := fresh "TEMP" in
+      set (X := E) in *; def_to_eq_sym X H E;
+      destruct X.
+
+    Tactic Notation "cases" constr(E) :=
+      let x := fresh "Eq" in cases E as H.
+
+``case_if_post``\ はゴールをかたづけるタクティックとして後で定義されるものです。
+
+::
+
+    Ltac case_if_post := idtac.
+
+``case_if``\ はコンテキスト内の\ ``if ?B then ?E1 else ?E2``\ という形のパターンを探し、\ ``B``\ について\ ``destruct B``\ を呼んで場合分けをします。最初にゴールを見て、そこになければ、\ ``if``\ 文を含む最初の仮定を見ます。\ ``case_if in H``\ は考慮対象の仮定を指定するのに使えます。構文\ ``case_if as Eq``\ と\ ``case_if in H as Eq``\ は、場合分けによって生成される仮定に名前を付けるのに使えます。
+
+``cases_if``\ は\ ``case_if``\ と同様ですが、主に2つの違いがあります:もし\ ``x = y``\ または\ ``x == y``\ という形の等式が生成されたなら、ゴールでこの等式にもとづく置換をします。
+
+::
+
+    Ltac cases_if_on_tactic E Eq :=
+      match type of E with
+      | {_}+{_} => destruct E as [Eq|Eq]; try subst_hyp Eq
+      | _ => let X := fresh in
+             sets_eq <- X Eq: E;
+             destruct X
+      end; case_if_post.
+
+    Tactic Notation "cases_if_on" constr(E) "as" simple_intropattern(Eq) :=
+      cases_if_on_tactic E Eq.
+
+    Tactic Notation "cases_if" "as" simple_intropattern(Eq) :=
+      match goal with
+      | |- context [if ?B then _ else _] => case_if_on B as Eq
+      | K: context [if ?B then _ else _] |- _ => case_if_on B as Eq
+      end.
+
+    Tactic Notation "cases_if" "in" hyp(H) "as" simple_intropattern(Eq) :=
+      match type of H with context [if ?B then _ else _] =>
+        cases_if_on B as Eq end.
+
+    Tactic Notation "cases_if" :=
+      let Eq := fresh in cases_if as Eq.
+
+    Tactic Notation "cases_if" "in" hyp(H) :=
+      let Eq := fresh in cases_if in H as Eq.
+
+``destruct_if``\ はコンテキストから\ ``if ?B then ?E1 else ?E2``\ という形のパターンを探し、\ ``B``\ について\ ``destruct B``\ を呼ぶことで場合分けをします。まずゴールを見て、そこになければ\ ``if``\ 文を含む最初の仮定を見ます。
+
+``destruct_head_match``\ は、ゴールが\ ``match ?E with ...``\ または\ ``match ?E with ... = _``\ または\ ``_ = match ?E with ...``\ という形のとき、先頭パターンマッチの引数で場合分けをします。Ltacの制約により、マッチするものがないときでもこのタクティックは失敗しません。その代わり、ゴールの不特定の部分項について、場合分けします。
+
+-  
+
+   -  
+
+      -  注意: 実験的です。
+
+   Ltac find\_head\_match T := match T with context [?E] => match T with
+   \| E => fail 1 \| \_ => constr:(E) end end.
+
+   Ltac destruct\_head\_match\_core cont := match goal with \| \|- ?T1 =
+   ?T2 => first [ let E := find\_head\_match T1 in cont E \| let E :=
+   find\_head\_match T2 in cont E ] \| \|- ?T1 => let E :=
+   find\_head\_match T1 in cont E end; destruct\_if\_post.
+
+   Tactic Notation "destruct\_head\_match" "as" simple\_intropattern(I)
+   := destruct\_head\_match\_core ltac:(fun E => destruct E as I).
+
+   Tactic Notation "destruct\_head\_match" :=
+   destruct\_head\_match\_core ltac:(fun E => destruct E).
+
+-  
+
+   -  ``remember``\ とのコンパチビリティのために提供します
+
+``cases' E``\ は\ ``case_eq E``\ と同様ですが、等式をゴールではなくコンテキストに作ります。構文\ ``cases E as H``\ も可能で、その仮定の名前\ ``H``\ を指定します。
+
+``cases_if'``\ は\ ``cases_if``\ と同様ですが、生成される等式が鏡像になっている点が違います。
+
+::
+
+    Ltac cases_if_on' E Eq :=
+      match type of E with
+      | {_}+{_} => destruct E as [Eq|Eq]; try subst_hyp Eq
+      | _ => let X := fresh in
+             sets_eq X Eq: E;
+             destruct X
+      end; case_if_post.
+
+    Tactic Notation "cases_if'" "as" simple_intropattern(Eq) :=
+      match goal with
+      | |- context [if ?B then _ else _] => cases_if_on' B Eq
+      | K: context [if ?B then _ else _] |- _ => cases_if_on' B Eq
+      end.
+
+    Tactic Notation "cases_if'" :=
+      let Eq := fresh in cases_if' as Eq.
+
+帰納法(Induction)
+-----------------
+
+``inductions E``\ は\ ``dependent induction E``\ の略記法です。\ ``inductions E gen X1 .. XN``\ は\ ``dependent induction E generalizing X1 .. XN``\ の略記法です。
+
+::
+
+    Require Import Coq.Program.Equality.
+
+    Ltac inductions_post :=
+      unfold eq' in *.
+
+    Tactic Notation "inductions" ident(E) :=
+      dependent induction E; inductions_post.
+    Tactic Notation "inductions" ident(E) "gen" ident(X1) :=
+      dependent induction E generalizing X1; inductions_post.
+    Tactic Notation "inductions" ident(E) "gen" ident(X1) ident(X2) :=
+      dependent induction E generalizing X1 X2; inductions_post.
+    Tactic Notation "inductions" ident(E) "gen" ident(X1) ident(X2)
+     ident(X3) :=
+      dependent induction E generalizing X1 X2 X3; inductions_post.
+    Tactic Notation "inductions" ident(E) "gen" ident(X1) ident(X2)
+     ident(X3) ident(X4) :=
+      dependent induction E generalizing X1 X2 X3 X4; inductions_post.
+    Tactic Notation "inductions" ident(E) "gen" ident(X1) ident(X2)
+     ident(X3) ident(X4) ident(X5) :=
+      dependent induction E generalizing X1 X2 X3 X4 X5; inductions_post.
+    Tactic Notation "inductions" ident(E) "gen" ident(X1) ident(X2)
+     ident(X3) ident(X4) ident(X5) ident(X6) :=
+      dependent induction E generalizing X1 X2 X3 X4 X5 X6; inductions_post.
+    Tactic Notation "inductions" ident(E) "gen" ident(X1) ident(X2)
+     ident(X3) ident(X4) ident(X5) ident(X6) ident(X7) :=
+      dependent induction E generalizing X1 X2 X3 X4 X5 X6 X7; inductions_post.
+    Tactic Notation "inductions" ident(E) "gen" ident(X1) ident(X2)
+     ident(X3) ident(X4) ident(X5) ident(X6) ident(X7) ident(X8) :=
+      dependent induction E generalizing X1 X2 X3 X4 X5 X6 X7 X8; inductions_post.
+
+``induction_wf IH: E X``\ は、与えられた整礎関係(well-founded
+relation)についての整礎帰納法原理(well-founded induction
+principle)を適用するために使われます。これはゴール\ ``PX``\ に対して適用されます。ここで\ ``PX``\ は\ ``X``\ の上の命題です。最初に、\ ``pattern X``\ を使って\ ``(fun a => P a) X``\ という形のゴールを用意します。そして次に、\ ``E``\ について具体化された整礎帰納法原理を適用します。ここで\ ``E``\ は型\ ``well_founded R``\ の項で、\ ``R``\ は二項関係です。構文は\ ``induction_wf: E X``\ と\ ``induction_wf E X``\ です。
+
+::
+
+    Tactic Notation "induction_wf" ident(IH) ":" constr(E) ident(X) :=
+      pattern X; apply (well_founded_ind E); clear X; intros X IH.
+    Tactic Notation "induction_wf" ":" constr(E) ident(X) :=
+      let IH := fresh "IH" in induction_wf IH: E X.
+    Tactic Notation "induction_wf" ":" constr(E) ident(X) :=
+      induction_wf: E X.
+
+決定可能な等式
+--------------
+
+``decides_equality``\ は\ ``decide equality``\ と同様ですが、現在のゴールの先頭の定義を展開できる点が違います。
+
+::
+
+    Ltac decides_equality_tactic :=
+      first [ decide equality | progress(unfolds); decides_equality_tactic ].
+
+    Tactic Notation "decides_equality" :=
+      decides_equality_tactic.
+
+同値(Equivalence)
+-----------------
+
+``iff H``\ は同値\ ``P <-> Q``\ を証明し、それぞれの場合に得られる仮定に名前\ ``H``\ を付けることができます。構文\ ``iff``\ と\ ``iff H1 H2``\ も可能で、それぞれ0個、2個の名前を付けます。タクティック\ ``iff <- H``\ は2つのサブゴールを交換します。つまり、(Q
+-> P)が最初のゴールになります。
+
+::
+
+    Lemma iff_intro_swap : forall (P Q : Prop),
+      (Q -> P) -> (P -> Q) -> (P <-> Q).
+    Proof. intuition. Qed.
+
+    Tactic Notation "iff" simple_intropattern(H1) simple_intropattern(H2) :=
+      split; [ intros H1 | intros H2 ].
+    Tactic Notation "iff" simple_intropattern(H) :=
+      iff H H.
+    Tactic Notation "iff" :=
+      let H := fresh "H" in iff H.
+
+    Tactic Notation "iff" "<-" simple_intropattern(H1) simple_intropattern(H2) :=
+      apply iff_intro_swap; [ intros H1 | intros H2 ].
+    Tactic Notation "iff" "<-" simple_intropattern(H) :=
+      iff <- H H.
+    Tactic Notation "iff" "<-" :=
+      let H := fresh "H" in iff <- H.
+
+N個の連言と選言
+---------------
+
+ゴールに分割されるN-連言
+
+``splits``\ の背後の実装。
+
+::
+
+    Ltac splits_tactic N :=
+      match N with
+      | O => fail
+      | S O => idtac
+      | S ?N' => split; [| splits_tactic N']
+      end.
+
+    Ltac unfold_goal_until_conjunction :=
+      match goal with
+      | |- _ /\ _ => idtac
+      | _ => progress(unfolds); unfold_goal_until_conjunction
+      end.
+
+    Ltac get_term_conjunction_arity T :=
+      match T with
+      | _ /\ _ /\ _ /\ _ /\ _ /\ _ /\ _ /\ _ => constr:(8)
+      | _ /\ _ /\ _ /\ _ /\ _ /\ _ /\ _ => constr:(7)
+      | _ /\ _ /\ _ /\ _ /\ _ /\ _ => constr:(6)
+      | _ /\ _ /\ _ /\ _ /\ _ => constr:(5)
+      | _ /\ _ /\ _ /\ _ => constr:(4)
+      | _ /\ _ /\ _ => constr:(3)
+      | _ /\ _ => constr:(2)
+      | _ -> ?T' => get_term_conjunction_arity T'
+      | _ => let P := get_head T in
+             let T' := eval unfold P in T in
+             match T' with
+             | T => fail 1
+             | _ => get_term_conjunction_arity T'
+             end
+
+``splits``\ は\ ``(T1 /\ .. /\ TN)``\ という形のゴールに適用され、\ ``N``\ 個のサブゴール\ ``T1``..\ ``TN``\ に分解します。ゴールが連言ではない場合、先頭の定義を展開します。
+
+::
+
+    Tactic Notation "splits" :=
+      unfold_goal_until_conjunction;
+      let N := get_goal_conjunction_arity in
+      splits_tactic N.
+
+``splits N``\ は\ ``splits``\ と同様ですが、\ ``N``-連言を得るのに必要なだけ定義を展開する点が違います。
+
+::
+
+    Tactic Notation "splits" constr(N) :=
+      let N := nat_from_number N in
+      splits_tactic N.
+
+``splits_all``\ は必要なときに定義を展開しながら、任意の連言を再帰的に分解します。注意:
+このタクティックは\ ``well_founded R``\ という形のゴールに対してループします。Todo:
+この問題を解決すること
+
+::
+
+    Ltac splits_all_base := repeat split.
+
+    Tactic Notation "splits_all" :=
+      splits_all_base.
+
+N-連言の分解
+
+``destructs``\ の背後の実装。
+
+::
+
+    Ltac destructs_conjunction_tactic N T :=
+      match N with
+      | 2 => destruct T as [? ?]
+      | 3 => destruct T as [? [? ?]]
+      | 4 => destruct T as [? [? [? ?]]]
+      | 5 => destruct T as [? [? [? [? ?]]]]
+      | 6 => destruct T as [? [? [? [? [? ?]]]]]
+      | 7 => destruct T as [? [? [? [? [? [? ?]]]]]]
+      end.
+
+``destructs T``\ は
+N-連言の項\ ``T``\ を分解します。\ ``destruct T as (H1 .. HN)``\ と同様ですが、N個の異なる名前を手動で指定しなくて良い点が違います。
+
+::
+
+    Tactic Notation "destructs" constr(T) :=
+      let TT := type of T in
+      let N := get_term_conjunction_arity TT in
+      destructs_conjunction_tactic N T.
+
+``destructs N T``\ は\ ``destruct T as (H1 .. HN)``\ と同様ですが、N個の異なる名前を手動で指定しなくて良い点が違います。N-引数の連言に限らないことに注意します。
+
+::
+
+    Tactic Notation "destructs" constr(N) constr(T) :=
+      let N := nat_from_number N in
+      destructs_conjunction_tactic N T.
+
+N-選言であるゴールを証明する
+
+``branch``\ の背後の実装。
+
+::
+
+    Ltac branch_tactic K N :=
+      match constr:(K,N) with
+      | (_,0) => fail 1
+      | (0,_) => fail 1
+      | (1,1) => idtac
+      | (1,_) => left
+      | (S ?K', S ?N') => right; branch_tactic K' N'
+      end.
+
+    Ltac unfold_goal_until_disjunction :=
+      match goal with
+      | |- _ \/ _ => idtac
+      | _ => progress(unfolds); unfold_goal_until_disjunction
+      end.
+
+    Ltac get_term_disjunction_arity T :=
+      match T with
+      | _ \/ _ \/ _ \/ _ \/ _ \/ _ \/ _ \/ _ => constr:(8)
+      | _ \/ _ \/ _ \/ _ \/ _ \/ _ \/ _ => constr:(7)
+      | _ \/ _ \/ _ \/ _ \/ _ \/ _ => constr:(6)
+      | _ \/ _ \/ _ \/ _ \/ _ => constr:(5)
+      | _ \/ _ \/ _ \/ _ => constr:(4)
+      | _ \/ _ \/ _ => constr:(3)
+      | _ \/ _ => constr:(2)
+      | _ -> ?T' => get_term_disjunction_arity T'
+      | _ => let P := get_head T in
+             let T' := eval unfold P in T in
+             match T' with
+             | T => fail 1
+             | _ => get_term_disjunction_arity T'
+             end
+      end.
+
+    Ltac get_goal_disjunction_arity :=
+      match goal with |- ?T => get_term_disjunction_arity T end.
+
+``branch N``\ は\ ``P1 \/ ... \/ PK \/ ... \/ PN``\ という形のゴールに適用され、ゴール\ ``PK``\ を残します。これは先頭の定義(もし存在すれば)だけを展開することができます。より複雑な展開のためには、タクティック\ ``branch K of N``\ を使うべきです。
+
+::
+
+    Tactic Notation "branch" constr(K) :=
+      let K := nat_from_number K in
+      unfold_goal_until_disjunction;
+      let N := get_goal_disjunction_arity in
+      branch_tactic K N.
+
+``branch K of N``\ は\ ``branch K``\ と同様ですが、選言の数\ ``N``\ が手動で与えられ、このため定義を展開できます。言い換えると、\ ``P1 \/ ... \/ PK \/ ... \/ PN``\ という形のゴールに適用され、ゴール\ ``PK``\ を残します。
+
+::
+
+    Tactic Notation "branch" constr(K) "of" constr(N) :=
+      let N := nat_from_number N in
+      let K := nat_from_number K in
+      branch_tactic K N.
+
+N-選言の分解
+
+``branches``\ の背後の実装。
+
+::
+
+    Ltac destructs_disjunction_tactic N T :=
+      match N with
+      | 2 => destruct T as [? | ?]
+      | 3 => destruct T as [? | [? | ?]]
+      | 4 => destruct T as [? | [? | [? | ?]]]
+      | 5 => destruct T as [? | [? | [? | [? | ?]]]]
+      end.
+
+``branches T``\ はN-選言である項\ ``T``\ を分解します。これは\ ``destruct T as [ H1 | .. | HN``]
+と同値で、\ ``N``\ 個の可能な場合に対応する\ ``N``\ 個のサブゴールを生成します。
+
+::
+
+    Tactic Notation "branches" constr(T) :=
+      let TT := type of T in
+      let N := get_term_disjunction_arity TT in
+      destructs_disjunction_tactic N T.
+
+``branches N T``\ は\ ``branches T``\ と同様ですが、選言の個数が\ ``N``\ に強制される点が違います。この形は定義をその場で展開したいときに便利です。
+
+::
+
+    Tactic Notation "branches" constr(N) constr(T) :=
+      let N := nat_from_number N in
+      destructs_disjunction_tactic N T.
+
+N-変数存在限量
+
+``exists T1 ... TN``\ は\ ``exists T1; ...; exists TN``\ の略記法です。これは\ ``exist X1 .. XN, P``\ という形のゴールを証明することを意図したものです。もし与えられた引数が\ ``__``\ (二連アンダースコア)ならば、存在変数が導入されます。\ ``exists T1 .. TN ___``\ は、任意個の\ ``__``\ についての\ ``exists T1 .. TN __ __ __``\ と同値です。
+
+::
+
+    Tactic Notation "exists_original" constr(T1) :=
+      exists T1.
+    Tactic Notation "exists" constr(T1) :=
+      match T1 with
+      | ltac_wild => esplit
+      | ltac_wilds => repeat esplit
+      | _ => exists T1
+      end.
+    Tactic Notation "exists" constr(T1) constr(T2) :=
+      exists T1; exists T2.
+    Tactic Notation "exists" constr(T1) constr(T2) constr(T3) :=
+      exists T1; exists T2; exists T3.
+    Tactic Notation "exists" constr(T1) constr(T2) constr(T3) constr(T4) :=
+      exists T1; exists T2; exists T3; exists T4.
+    Tactic Notation "exists" constr(T1) constr(T2) constr(T3) constr(T4)
+     constr(T5) :=
+      exists T1; exists T2; exists T3; exists T4; exists T5.
+    Tactic Notation "exists" constr(T1) constr(T2) constr(T3) constr(T4)
+     constr(T5) constr(T6) :=
+      exists T1; exists T2; exists T3; exists T4; exists T5; exists T6.
+
+タクティック\ ``exists___ N``\ は\ ``N``\ 個の二連アンダースコアの\ ``exists __ ... __``\ の略記法です。タクティック\ ``exists_``\ は、ゴールの先頭の構文的な存在限量の数\ ``N``\ について\ ``exists___ N``\ を呼ぶのと同値です。\ ``exists___``\ の振る舞いが\ ``exists ___``\ と違うのは、ゴールの定義を展開してはじめて存在限量になる場合です。
+
+仮定内の存在限量と連言
+
+todo: ドキュメンテーション
+
+::
+
+    Ltac intuit_core :=
+      repeat match goal with
+      | H: _ /\ _ |- _ => destruct H
+      | H: exists a, _ |- _ => destruct H
+      end.
+
+    Ltac intuit_from H :=
+      first [ progress (intuit_core)
+            | destruct H; intuit_core ].
+
+    Tactic Notation "intuit" :=
+      intuit_core.
+    Tactic Notation "intuit" constr(H) :=
+      intuit_from H.
+
+タイプクラスのインスタンスを証明するためのタクティック
+------------------------------------------------------
+
+``typeclass``\ はタイプクラスのインスタンスを発見することに特化された自動化タクティックです。
+
+::
+
+    Tactic Notation "typeclass" :=
+      let go _ := eauto with typeclass_instances in
+      solve [ go tt | constructor; go tt ].
+
+``solve_typeclass``\ は\ ``typeclass``\ の簡易版です。インスタンスを再度解くヒントタクティックで使われます。
+
+::
+
+    Tactic Notation "solve_typeclass" :=
+      solve [ eauto with typeclass_instances ].
+
+自動化起動のタクティック
+------------------------
+
+``jauto``, 新しい自動化タクティック
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``jauto``\ は\ ``intuition eauto``\ と比べて、コンテキストから存在限量を展開できる点が優れています。同時に、\ ``jauto``\ はコンテキストから選言を分解しないため、\ ``intuition eauto``\ より速い場合があります。\ ``jauto``\ の戦略は以下のようにまとめられます:
+
+-  コンテキストからすべての存在限量と連言を開きます
+-  ゴールの存在限量と連言に対して esplit と split を呼びます
+-  eauto を呼びます。
+
+   Ltac jauto\_set\_hyps := repeat match goal with H: ?T \|- \_ => match
+   T with \| \_ / \_ => destruct H \| exists a, \_ => destruct H \| \_
+   => generalizes H end end.
+
+   Ltac jauto\_set\_goal := repeat match goal with \| \|- exists a, \_
+   => esplit \| \|- \_ / \_ => split end.
+
+   Ltac jauto\_set := intros; jauto\_set\_hyps; intros;
+   jauto\_set\_goal; unfold not in \*.
+
+   Tactic Notation "jauto" := try solve [ jauto\_set; eauto ].
+
+   Tactic Notation "jauto\_fast" := try solve [ auto \| eauto \| jauto
+   ].
+
+``iauto``\ は\ ``intuition eauto``\ の略記法です
+
+::
+
+    Tactic Notation "iauto" := try solve [intuition eauto].
+
+自動化タクティックの定義
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+以下の2つのタクティックは、「軽い自動化」("light
+automation")と「強力な自動化」("strong
+automation")のデフォルトの振る舞いを定義します。これらのタクティックは、構文\ ``Ltac .. ::= ..``\ を使うことでいつでも再定義できます。
+
+``auto_tilde``\ は、タクティックの後に記号\ ``~``\ が使われたときにいつでも呼ばれるタクティックです。
+
+::
+
+    Ltac auto_tilde_default := auto.
+    Ltac auto_tilde := auto_tilde_default.
+
+``auto_star``\ は、タクティックの後に記号\ ``*``\ が使われたときにいつでも呼ばれるタクティックです。
+
+::
+
+    Ltac auto_star_default := try solve [ auto | eauto | intuition eauto ].
+
+``auto~``\ はタクティック\ ``auto_tilde``\ の記法です。この後に、ゴールを解くために
+auto が使う補題(または証明項)を付記することができます。
+
+::
+
+    Tactic Notation "auto" "~" :=
+      auto_tilde.
+    Tactic Notation "auto" "~" constr(E1) :=
+      lets: E1; auto_tilde.
+    Tactic Notation "auto" "~" constr(E1) constr(E2) :=
+      lets: E1; lets: E2; auto_tilde.
+    Tactic Notation "auto" "~" constr(E1) constr(E2) constr(E3) :=
+      lets: E1; lets: E2; lets: E3; auto_tilde.
+
+``auto*``\ はタクティック\ ``auto_star``\ の記法です。この後に、ゴールを解くために
+auto が使う補題(または証明項)を付記することができます。
+
+::
+
+    Tactic Notation "auto" "*" :=
+      auto_star.
+    Tactic Notation "auto" "*" constr(E1) :=
+      lets: E1; auto_star.
+    Tactic Notation "auto" "*" constr(E1) constr(E2) :=
+      lets: E1; lets: E2; auto_star.
+    Tactic Notation "auto" "*" constr(E1) constr(E2) constr(E3) :=
+      lets: E1; lets: E2; lets: E3; auto_star.
+
+``auto_false``\ は、ある種の矛盾を発見できる\ ``auto``\ の一種です。\ ``auto_false~``\ および\ ``auto_false*``\ も可能です。
+
+::
+
+    Ltac auto_false_base cont :=
+      try solve [ cont tt | tryfalse by congruence/
+                | try split; intros_all; tryfalse by congruence/ ].
+
+    Tactic Notation "auto_false" :=
+       auto_false_base ltac:(fun tt => auto).
+    Tactic Notation "auto_false" "~" :=
+       auto_false_base ltac:(fun tt => auto~).
+    Tactic Notation "auto_false" "*" :=
+       auto_false_base ltac:(fun tt => auto*).
+
+コンパチビリティを構文解析するための定義
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Tactic Notation "f_equal" :=
+      f_equal.
+    Tactic Notation "constructor" :=
+      constructor.
+    Tactic Notation "simple" :=
+      simpl.
+
+軽い自動化の構文解析
+~~~~~~~~~~~~~~~~~~~~
+
+任意のタクティックに記号\ ``~``\ を付けると、すべてのサブゴールに対して\ ``auto_tilde``\ が呼ばれます。例外が3つあります:
+
+-  ``cuts``\ と\ ``asserts``\ は最初のサブゴールに\ ``auto``\ だけを呼びます
+-  ``apply~``\ は\ ``apply``\ ではなく\ ``sapply``\ を使います
+-  ``tryfalse~``\ は\ ``tryfalse by auto_tilde``\ と定義されています。
+
+いくつかのビルトイン・タクティックはタクティック記法を使って定義されていないため、拡張できません。例えば\ ``simpl``\ と\ ``unfold``\ です。これらに対して、\ ``simpl~``\ のような記法は使えません。
+
+::
+
+    Tactic Notation "equates" "~" constr(E) :=
+       equates E; auto~.
+    Tactic Notation "equates" "~" constr(n1) constr(n2) :=
+      equates n1 n2; auto~.
+    Tactic Notation "equates" "~" constr(n1) constr(n2) constr(n3) :=
+      equates n1 n2 n3; auto~.
+    Tactic Notation "equates" "~" constr(n1) constr(n2) constr(n3) constr(n4) :=
+      equates n1 n2 n3 n4; auto~.
+
+    Tactic Notation "applys_eq" "~" constr(H) constr(E) :=
+      applys_eq H E; auto_tilde.
+    Tactic Notation "applys_eq" "~" constr(H) constr(n1) constr(n2) :=
+      applys_eq H n1 n2; auto_tilde.
+    Tactic Notation "applys_eq" "~" constr(H) constr(n1) constr(n2) constr(n3) :=
+      applys_eq H n1 n2 n3; auto_tilde.
+    Tactic Notation "applys_eq" "~" constr(H) constr(n1) constr(n2) constr(n3) constr(n4) :=
+      applys_eq H n1 n2 n3 n4; auto_tilde.
+
+    Tactic Notation "apply" "~" constr(H) :=
+      sapply H; auto_tilde.
+
+    Tactic Notation "destruct" "~" constr(H) :=
+      destruct H; auto_tilde.
+    Tactic Notation "destruct" "~" constr(H) "as" simple_intropattern(I) :=
+      destruct H as I; auto_tilde.
+    Tactic Notation "f_equal" "~" :=
+      f_equal; auto_tilde.
+    Tactic Notation "induction" "~" constr(H) :=
+      induction H; auto_tilde.
+    Tactic Notation "inversion" "~" constr(H) :=
+      inversion H; auto_tilde.
+    Tactic Notation "split" "~" :=
+      split; auto_tilde.
+    Tactic Notation "subst" "~" :=
+      subst; auto_tilde.
+    Tactic Notation "right" "~" :=
+      right; auto_tilde.
+    Tactic Notation "left" "~" :=
+      left; auto_tilde.
+    Tactic Notation "constructor" "~" :=
+      constructor; auto_tilde.
+    Tactic Notation "constructors" "~" :=
+      constructors; auto_tilde.
+
+    Tactic Notation "false" "~" :=
+      false; auto_tilde.
+    Tactic Notation "false" "~" constr(T) :=
+      false T by auto_tilde/.
+    Tactic Notation "tryfalse" "~" :=
+      tryfalse by auto_tilde/.
+    Tactic Notation "tryfalse_invert" "~" :=
+      first [ tryfalse~ | false_invert ].
+
+    Tactic Notation "asserts" "~" simple_intropattern(H) ":" constr(E) :=
+      asserts H: E; [ auto_tilde | idtac ].
+    Tactic Notation "cuts" "~" simple_intropattern(H) ":" constr(E) :=
+      cuts H: E; [ auto_tilde | idtac ].
+    Tactic Notation "cuts" "~" ":" constr(E) :=
+      cuts: E; [ auto_tilde | idtac ].
+
+    Tactic Notation "lets" "~" simple_intropattern(I) ":" constr(E) :=
+      lets I: E; auto_tilde.
+    Tactic Notation "lets" "~" simple_intropattern(I) ":" constr(E0)
+     constr(A1) :=
+      lets I: E0 A1; auto_tilde.
+    Tactic Notation "lets" "~" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) :=
+      lets I: E0 A1 A2; auto_tilde.
+    Tactic Notation "lets" "~" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) :=
+      lets I: E0 A1 A2 A3; auto_tilde.
+    Tactic Notation "lets" "~" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) :=
+      lets I: E0 A1 A2 A3 A4; auto_tilde.
+    Tactic Notation "lets" "~" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) constr(A5) :=
+      lets I: E0 A1 A2 A3 A4 A5; auto_tilde.
+
+    Tactic Notation "lets" "~" ":" constr(E) :=
+      lets: E; auto_tilde.
+    Tactic Notation "lets" "~" ":" constr(E0)
+     constr(A1) :=
+      lets: E0 A1; auto_tilde.
+    Tactic Notation "lets" "~" ":" constr(E0)
+     constr(A1) constr(A2) :=
+      lets: E0 A1 A2; auto_tilde.
+    Tactic Notation "lets" "~" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) :=
+      lets: E0 A1 A2 A3; auto_tilde.
+    Tactic Notation "lets" "~" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) :=
+      lets: E0 A1 A2 A3 A4; auto_tilde.
+    Tactic Notation "lets" "~" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) constr(A5) :=
+      lets: E0 A1 A2 A3 A4 A5; auto_tilde.
+
+    Tactic Notation "forwards" "~" simple_intropattern(I) ":" constr(E) :=
+      forwards I: E; auto_tilde.
+    Tactic Notation "forwards" "~" simple_intropattern(I) ":" constr(E0)
+     constr(A1) :=
+      forwards I: E0 A1; auto_tilde.
+    Tactic Notation "forwards" "~" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) :=
+      forwards I: E0 A1 A2; auto_tilde.
+    Tactic Notation "forwards" "~" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) :=
+      forwards I: E0 A1 A2 A3; auto_tilde.
+    Tactic Notation "forwards" "~" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) :=
+      forwards I: E0 A1 A2 A3 A4; auto_tilde.
+    Tactic Notation "forwards" "~" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) constr(A5) :=
+      forwards I: E0 A1 A2 A3 A4 A5; auto_tilde.
+
+    Tactic Notation "forwards" "~" ":" constr(E) :=
+      forwards: E; auto_tilde.
+    Tactic Notation "forwards" "~" ":" constr(E0)
+     constr(A1) :=
+      forwards: E0 A1; auto_tilde.
+    Tactic Notation "forwards" "~" ":" constr(E0)
+     constr(A1) constr(A2) :=
+      forwards: E0 A1 A2; auto_tilde.
+    Tactic Notation "forwards" "~" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) :=
+      forwards: E0 A1 A2 A3; auto_tilde.
+    Tactic Notation "forwards" "~" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) :=
+      forwards: E0 A1 A2 A3 A4; auto_tilde.
+    Tactic Notation "forwards" "~" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) constr(A5) :=
+      forwards: E0 A1 A2 A3 A4 A5; auto_tilde.
+
+    Tactic Notation "applys" "~" constr(H) :=
+      sapply H; auto_tilde.
+
+強力な自動化の構文解析
+~~~~~~~~~~~~~~~~~~~~~~
+
+任意のタクティックに記号\ ``*``\ を付けると、すべてのサブゴールに対して\ ``auto*``\ が呼ばれます。例外は、軽い自動化と同じです。
+
+例外: ライブラリ\ ``Coq.Classes.Equivalence``\ を import
+したいときは、\ ``subst*``\ ではなく\ ``subs*``\ を使ってください。
+
+::
+
+    Tactic Notation "equates" "*" constr(E) :=
+       equates E; auto_star.
+    Tactic Notation "equates" "*" constr(n1) constr(n2) :=
+      equates n1 n2; auto_star.
+    Tactic Notation "equates" "*" constr(n1) constr(n2) constr(n3) :=
+      equates n1 n2 n3; auto_star.
+    Tactic Notation "equates" "*" constr(n1) constr(n2) constr(n3) constr(n4) :=
+      equates n1 n2 n3 n4; auto_star.
+
+    Tactic Notation "applys_eq" "*" constr(H) constr(E) :=
+      applys_eq H E; auto_star.
+    Tactic Notation "applys_eq" "*" constr(H) constr(n1) constr(n2) :=
+      applys_eq H n1 n2; auto_star.
+    Tactic Notation "applys_eq" "*" constr(H) constr(n1) constr(n2) constr(n3) :=
+      applys_eq H n1 n2 n3; auto_star.
+    Tactic Notation "applys_eq" "*" constr(H) constr(n1) constr(n2) constr(n3) constr(n4) :=
+      applys_eq H n1 n2 n3 n4; auto_star.
+
+    Tactic Notation "apply" "*" constr(H) :=
+      sapply H; auto_star.
+
+    Tactic Notation "destruct" "*" constr(H) :=
+      destruct H; auto_star.
+    Tactic Notation "destruct" "*" constr(H) "as" simple_intropattern(I) :=
+      destruct H as I; auto_star.
+    Tactic Notation "f_equal" "*" :=
+      f_equal; auto_star.
+    Tactic Notation "induction" "*" constr(H) :=
+      induction H; auto_star.
+    Tactic Notation "inversion" "*" constr(H) :=
+      inversion H; auto_star.
+    Tactic Notation "split" "*" :=
+      split; auto_star.
+    Tactic Notation "subs" "*" :=
+      subst; auto_star.
+    Tactic Notation "subst" "*" :=
+      subst; auto_star.
+    Tactic Notation "right" "*" :=
+      right; auto_star.
+    Tactic Notation "left" "*" :=
+      left; auto_star.
+    Tactic Notation "constructor" "*" :=
+      constructor; auto_star.
+    Tactic Notation "constructors" "*" :=
+      constructors; auto_star.
+
+    Tactic Notation "false" "*" :=
+      false; auto_star.
+    Tactic Notation "false" "*" constr(T) :=
+      false T by auto_star/.
+    Tactic Notation "tryfalse" "*" :=
+      tryfalse by auto_star/.
+    Tactic Notation "tryfalse_invert" "*" :=
+      first [ tryfalse* | false_invert ].
+
+    Tactic Notation "asserts" "*" simple_intropattern(H) ":" constr(E) :=
+      asserts H: E; [ auto_star | idtac ].
+    Tactic Notation "cuts" "*" simple_intropattern(H) ":" constr(E) :=
+      cuts H: E; [ auto_star | idtac ].
+    Tactic Notation "cuts" "*" ":" constr(E) :=
+      cuts: E; [ auto_star | idtac ].
+
+    Tactic Notation "lets" "*" simple_intropattern(I) ":" constr(E) :=
+      lets I: E; auto_star.
+    Tactic Notation "lets" "*" simple_intropattern(I) ":" constr(E0)
+     constr(A1) :=
+      lets I: E0 A1; auto_star.
+    Tactic Notation "lets" "*" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) :=
+      lets I: E0 A1 A2; auto_star.
+    Tactic Notation "lets" "*" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) :=
+      lets I: E0 A1 A2 A3; auto_star.
+    Tactic Notation "lets" "*" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) :=
+      lets I: E0 A1 A2 A3 A4; auto_star.
+    Tactic Notation "lets" "*" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) constr(A5) :=
+      lets I: E0 A1 A2 A3 A4 A5; auto_star.
+
+    Tactic Notation "lets" "*" ":" constr(E) :=
+      lets: E; auto_star.
+    Tactic Notation "lets" "*" ":" constr(E0)
+     constr(A1) :=
+      lets: E0 A1; auto_star.
+    Tactic Notation "lets" "*" ":" constr(E0)
+     constr(A1) constr(A2) :=
+      lets: E0 A1 A2; auto_star.
+    Tactic Notation "lets" "*" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) :=
+      lets: E0 A1 A2 A3; auto_star.
+    Tactic Notation "lets" "*" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) :=
+      lets: E0 A1 A2 A3 A4; auto_star.
+    Tactic Notation "lets" "*" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) constr(A5) :=
+      lets: E0 A1 A2 A3 A4 A5; auto_star.
+
+    Tactic Notation "forwards" "*" simple_intropattern(I) ":" constr(E) :=
+      forwards I: E; auto_star.
+    Tactic Notation "forwards" "*" simple_intropattern(I) ":" constr(E0)
+     constr(A1) :=
+      forwards I: E0 A1; auto_star.
+    Tactic Notation "forwards" "*" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) :=
+      forwards I: E0 A1 A2; auto_star.
+    Tactic Notation "forwards" "*" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) :=
+      forwards I: E0 A1 A2 A3; auto_star.
+    Tactic Notation "forwards" "*" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) :=
+      forwards I: E0 A1 A2 A3 A4; auto_star.
+    Tactic Notation "forwards" "*" simple_intropattern(I) ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) constr(A5) :=
+      forwards I: E0 A1 A2 A3 A4 A5; auto_star.
+
+    Tactic Notation "forwards" "*" ":" constr(E) :=
+      forwards: E; auto_star.
+    Tactic Notation "forwards" "*" ":" constr(E0)
+     constr(A1) :=
+      forwards: E0 A1; auto_star.
+    Tactic Notation "forwards" "*" ":" constr(E0)
+     constr(A1) constr(A2) :=
+      forwards: E0 A1 A2; auto_star.
+    Tactic Notation "forwards" "*" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) :=
+      forwards: E0 A1 A2 A3; auto_star.
+    Tactic Notation "forwards" "*" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) :=
+      forwards: E0 A1 A2 A3 A4; auto_star.
+    Tactic Notation "forwards" "*" ":" constr(E0)
+     constr(A1) constr(A2) constr(A3) constr(A4) constr(A5) :=
+      forwards: E0 A1 A2 A3 A4 A5; auto_star.
+
+    Tactic Notation "applys" "*" constr(H) :=
+      sapply H; auto_star.
+
+証明コンテキストを整理するためのタクティック
+--------------------------------------------
+
+仮定の隠蔽
+~~~~~~~~~~
+
+``hide_def x``\ と\ ``show_def x``\ によって、定義\ ``x``\ の本体を隠蔽/明示化できます。
+
+::
+
+    Tactic Notation "hide_def" hyp(x) :=
+      let x' := constr:(x) in
+      let T := eval unfold x in x' in
+      change T with (@ltac_something _ T) in x.
+
+    Tactic Notation "show_def" hyp(x) :=
+      let x' := constr:(x) in
+      let U := eval unfold x in x' in
+      match U with @ltac_something _ ?T =>
+        change U with T in x end.
+
+``show_def``\ はゴールの\ ``Something``\ を展開します
+
+::
+
+    Tactic Notation "show_def" :=
+      unfold ltac_something.
+
+    Tactic Notation "show_def" "in" "*" :=
+      unfold ltac_something in *.
+
+``hide_defs``\ と\ ``show_defs``\ はすべての定義に適用されます
+
+::
+
+    Tactic Notation "hide_defs" :=
+      repeat match goal with H := ?T |- _ =>
+        match T with
+        | @ltac_something _ _ => fail 1
+        | _ => change T with (@ltac_something _ T) in H
+        end
+      end.
+
+    Tactic Notation "show_defs" :=
+      repeat match goal with H := (@ltac_something _ ?T) |- _ =>
+        change (@ltac_something _ T) with T in H end.
+
+``hide_hyp H``\ は\ ``H``\ の型の表記を\ ``Something``\ に変え、\ ``show_hyp H``\ は仮定の型を明示します。なお、\ ``H``\ の隠された型でも\ ``H``\ の実際の型と同様にはたらきます。
+
+::
+
+    Tactic Notation "show_hyp" hyp(H) :=
+      apply ltac_something_show in H.
+
+    Tactic Notation "hide_hyp" hyp(H) :=
+      apply ltac_something_hide in H.
+
+``hide_hyps``\ と\ ``show_hyps``\ は、型\ ``Prop``\ のすべての仮定を隠蔽/明示化します。
+
+::
+
+    Tactic Notation "show_hyps" :=
+      repeat match goal with
+        H: @ltac_something _ _ |- _ => show_hyp H end.
+
+    Tactic Notation "hide_hyps" :=
+      repeat match goal with H: ?T |- _ =>
+        match type of T with
+        | Prop =>
+          match T with
+          | @ltac_something _ _ => fail 2
+          | _ => hide_hyp H
+          end
+        | _ => fail 1
+        end
+      end.
+
+``hide H``\ と\ ``show H``\ はそれぞれ、\ ``hide_hyp``\ または\ ``hide_def``\ を、あるいは、\ ``show_hyp``\ または\ ``show_def``\ を自動的に選択します。同様に、\ ``hide_all``\ と\ ``show_all``\ はすべてに適用されます。
+
+::
+
+    Tactic Notation "hide" hyp(H) :=
+      first [hide_def H | hide_hyp H].
+
+    Tactic Notation "show" hyp(H) :=
+      first [show_def H | show_hyp H].
+
+    Tactic Notation "hide_all" :=
+      hide_hyps; hide_defs.
+
+    Tactic Notation "show_all" :=
+      unfold ltac_something in *.
+
+``hide_term E``\ はゴールから項を隠すのに使います。\ ``show_term``\ または\ ``show_term E``\ は隠された項を明示化するために使います。\ ``hide_term E in H``\ は仮定を指定するときに使います。
+
+::
+
+    Tactic Notation "hide_term" constr(E) :=
+      change E with (@ltac_something _ E).
+    Tactic Notation "show_term" constr(E) :=
+      change (@ltac_something _ E) with E.
+    Tactic Notation "show_term" :=
+      unfold ltac_something.
+
+    Tactic Notation "hide_term" constr(E) "in" hyp(H) :=
+      change E with (@ltac_something _ E) in H.
+    Tactic Notation "show_term" constr(E) "in" hyp(H) :=
+      change (@ltac_something _ E) with E in H.
+    Tactic Notation "show_term" "in" hyp(H) :=
+      unfold ltac_something in H.
+
+仮定のソーティング
+~~~~~~~~~~~~~~~~~~
+
+``sort``\ はコンテキストの仮定を並び変えて、すべての命題(型 Prop
+の仮定)がコンテキストの下部に来るようにします。
+
+::
+
+    Ltac sort_tactic :=
+      try match goal with H: ?T |- _ =>
+      match type of T with Prop =>
+        generalizes H; (try sort_tactic); intro
+      end end.
+
+    Tactic Notation "sort" :=
+      sort_tactic.
+
+仮定のクリア
+~~~~~~~~~~~~
+
+``clears X1 ... XN``\ は\ ``clear``\ の変種で、変数\ ``X1``..\ ``XN``\ とそれらに依存するすべての仮定をクリアします。\ ``clear``\ と対照的に、失敗することはありません。
+
+::
+
+    Tactic Notation "clears" ident(X1) :=
+      let rec doit _ :=
+      match goal with
+      | H:context[X1] |- _ => clear H; try (doit tt)
+      | _ => clear X1
+      end in doit tt.
+    Tactic Notation "clears" ident(X1) ident(X2) :=
+      clears X1; clears X2.
+    Tactic Notation "clears" ident(X1) ident(X2) ident(X3) :=
+      clears X1; clears X2; clear X3.
+    Tactic Notation "clears" ident(X1) ident(X2) ident(X3) ident(X4) :=
+      clears X1; clears X2; clear X3; clear X4.
+    Tactic Notation "clears" ident(X1) ident(X2) ident(X3) ident(X4)
+     ident(X5) :=
+      clears X1; clears X2; clear X3; clear X4; clear X5.
+    Tactic Notation "clears" ident(X1) ident(X2) ident(X3) ident(X4)
+     ident(X5) ident(X6) :=
+      clears X1; clears X2; clear X3; clear X4; clear X5; clear X6.
+
+``clears``\ (引数なし)は使われていないすべての変数をコンテキストからクリアします。言い換えると、命題(型
+Prop
+を持つもの)でもなく、別の仮定にもゴールにも現れないすべての変数を除去します。
+
+::
+
+    Ltac clears_tactic :=
+      match goal with H: ?T |- _ =>
+      match type of T with
+      | Prop => generalizes H; (try clears_tactic); intro
+      | ?TT => clear H; (try clears_tactic)
+      | ?TT => generalizes H; (try clears_tactic); intro
+      end end.
+
+    Tactic Notation "clears" :=
+      clears_tactic.
+
+``clears_all``\ は消すことができるすべての仮定をゴールからクリアします。残るのは、ゴールで言及されている仮定だけです。
+
+::
+
+    Tactic Notation "clears_all" :=
+      repeat match goal with H: _ |- _ => clear H end.
+
+``clears_last``\ はコンテキストから最後の仮定をクリアします。\ ``clears_last N``\ は最後の\ ``N``\ 個の仮定をコンテキストからクリアします。
+
+::
+
+    Tactic Notation "clears_last" :=
+      match goal with H: ?T |- _ => clear H end.
+
+    Ltac clears_last_base N :=
+      match nat_from_number N with
+      | 0 => idtac
+      | S ?p => clears_last; clears_last_base p
+      end.
+
+    Tactic Notation "clears_last" constr(N) :=
+      clears_last_base N.
+
+開発目的のタクティック
+----------------------
+
+サブゴールのスキップ
+~~~~~~~~~~~~~~~~~~~~
+
+``skip``\ タクティックは現在のゴールをいつでも admit
+するために使います。\ ``skip``\ を使うことは、トップレベルのコマンド\ ``Focus``\ を使うより、特定のサブゴールに到達するのには、はるかに効率的です。
+
+``skip``\ には2つの可能な実装があります。1つは存在変数を利用するもの、もう1つは型\ ``False``\ についての公理に依存するものです。なお、現在のゴールが具体化されない変数を含んでいるときにはビルトイン・タクティック\ ``admit``\ は適用できないことに注意します。
+
+1つ目の方法の優れた点は、\ ``skip``\ を使った証明は\ ``Admitted``\ で終わらなければならなくなることです。なぜなら、\ ``Qed``\ を使っても"``uninstantiated existential variables``\ "(具体化されていない存在変数)というメッセージが出て受理されないからです。このことで証明が未完であることが明確になります。
+
+2つ目の方法の優れた点は、ちょうど逆になります。証明を\ ``Qed``\ で締めることができ、これから、\ ``Qed``\ を\ ``Admitted``\ に直したり、その逆をしたりをやり続ける苦労をしなくて済みます。なお、それでも、\ ``Qed``\ が受理されるためには、他のタクティックによって導入された存在変数は、すべて具体化しなければなりません。
+
+2つの実装を提供しますので、自分に合う方を選んでください。デフォルトでは、\ ``skip'``\ は1つ目の実装を使い、\ ``skip``\ は2つ目の実装を使います。
+
+::
+
+    Ltac skip_with_existential :=
+      match goal with |- ?G =>
+        let H := fresh in evar(H:G); eexact H end.
+
+    Variable skip_axiom : False.
+
+``skip H: T``\ は現在のコンテキストに型\ ``T``\ の仮定\ ``H``\ を追加します。このときに\ ``H``\ は無批判に真と仮定されます。\ ``skip: T``\ と\ ``skip H_asserts: T``\ と\ ``skip_asserts: T``\ も構文として可能です。なお、H
+は intro
+パターンでも構いません。\ ``T``\ が\ ``N``\ 個の連言のとき、構文\ ``skip H1 .. HN: T``\ も可能です。
+
+::
+
+    Tactic Notation "skip" simple_intropattern(I) ":" constr(T) :=
+      asserts I: T; [ skip | ].
+    Tactic Notation "skip" ":" constr(T) :=
+      let H := fresh in skip H: T.
+
+    Tactic Notation "skip" simple_intropattern(I1)
+     simple_intropattern(I2) ":" constr(T) :=
+      skip [I1 I2]: T.
+    Tactic Notation "skip" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3) ":" constr(T) :=
+      skip [I1 [I2 I3]]: T.
+    Tactic Notation "skip" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3)
+     simple_intropattern(I4) ":" constr(T) :=
+      skip [I1 [I2 [I3 I4]]]: T.
+    Tactic Notation "skip" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3)
+     simple_intropattern(I4) simple_intropattern(I5) ":" constr(T) :=
+      skip [I1 [I2 [I3 [I4 I5]]]]: T.
+    Tactic Notation "skip" simple_intropattern(I1)
+     simple_intropattern(I2) simple_intropattern(I3)
+     simple_intropattern(I4) simple_intropattern(I5)
+     simple_intropattern(I6) ":" constr(T) :=
+      skip [I1 [I2 [I3 [I4 [I5 I6]]]]]: T.
+
+    Tactic Notation "skip_asserts" simple_intropattern(I) ":" constr(T) :=
+      skip I: T.
+    Tactic Notation "skip_asserts" ":" constr(T) :=
+      skip: T.
+
+``skip_cuts T``\ は単に現在のゴールを\ ``T``\ に置きかえます。
+
+::
+
+    Tactic Notation "skip_cuts" constr(T) :=
+      cuts: T; [ skip | ].
+
+``skip_goal H``\ は任意のゴールに適用できます。単に現在のゴールを真と仮定します。その仮定に
+"H"
+という名前を付けます。帰納法(induction)や余帰納法(coinduction)による証明の準備のときに便利です。構文\ ``skip_goal``\ も可能です。
+
+::
+
+    Tactic Notation "skip_goal" ident(H) :=
+      match goal with |- ?G => skip H: G end.
+
+    Tactic Notation "skip_goal" :=
+      let IH := fresh "IH" in skip_goal IH.
+
+``skip_rewrite T``\ は\ ``T``\ が等式のときに適用できます。この等式を無批判に成立するものとし、ゴールをこの等式について書き換えします。
+
+::
+
+    Tactic Notation "skip_rewrite" constr(T) :=
+      let M := fresh in skip_asserts M: T; rewrite M; clear M.
+
+``skip_rewrite T in H``\ は\ ``rewrite_skip``\ と同様ですが、仮定\ ``H``\ を書き換える点が違います。
+
+::
+
+    Tactic Notation "skip_rewrite" constr(T) "in" hyp(H) :=
+      let M := fresh in skip_asserts M: T; rewrite M in H; clear M.
+
+``skip_rewrites_all T``\ は\ ``rewrite_skip``\ と同様ですが、すべての場所(ゴールとすべての仮定)を書き換える点が違います。
+
+::
+
+    Tactic Notation "skip_rewrite_all" constr(T) :=
+      let M := fresh in skip_asserts M: T; rewrite_all M; clear M.
+
+``skip_induction E``\ は任意のゴールに適用できます。現在のゴールを無批判に成立するものと仮定し(この仮定はデフォルトでは"IH"と名付けられます)、\ ``induction E``\ ではなく\ ``destruct E``\ を呼びます。これは、最初に帰納法による証明の準備を整え、証明の第2パスで帰納法の仮定の適用を調整していくときに便利です。
+
+::
+
+    Tactic Notation "skip_induction" constr(E) :=
+      let IH := fresh "IH" in skip_goal IH; destruct E.
+
+    Tactic Notation "skip_induction" constr(E) "as" simple_intropattern(I) :=
+      let IH := fresh "IH" in skip_goal IH; destruct E as I.
+
+標準ライブラリとのコンパチビリティ
+----------------------------------
+
+モジュール\ ``Program``\ は現在のモジュールと衝突する定義を含んでいます。\ ``Program``\ を直接または間接的に
+import するときには(``Program``\ を間接的に import
+するのは、例えば\ ``Setoid``\ や\ ``ZArith``\ を利用するときです)、トップレベルのコマンド\ ``Require Import LibTacticsCompatibility``\ を行って、コンパチビリティの定義を
+import する必要があります。
+
+::
+
+    Module LibTacticsCompatibility.
+      Tactic Notation "apply" "*" constr(H) :=
+        sapply H; auto_star.
+      Tactic Notation "subst" "*" :=
+        subst; auto_star.
+    End LibTacticsCompatibility.
+
+    Open Scope nat_scope.
+
