@@ -2,7 +2,7 @@
 VER=$1
 make html epub
 cd _build/epub
-mv *.epub software_foundation_${VER}.epub
+mv software_foundation.epub software_foundation_${VER}.epub
 kindlegen software_foundation_${VER}.epub
 scp *.epub *.mobi proofcafe.org:/var/www/sf-beta
 cd ../..
