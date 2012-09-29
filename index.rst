@@ -9,9 +9,9 @@
 本ドキュメントは実験中のものです。
 安定板は http://proofcafe.org/sf/ を参照してください。
 
-epub版: http://proofcafe.org/sf-beta/software_foundation_1.0.1.epub
+epub版: http://proofcafe.org/sf-beta/software_foundation_1.0.2.epub
 
-mobi版: http://proofcafe.org/sf-beta/software_foundation_1.0.1.mobi
+mobi版: http://proofcafe.org/sf-beta/software_foundation_1.0.2.mobi
 
 Contents:
 
