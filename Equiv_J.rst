@@ -1,6 +1,10 @@
 Equiv\_J: プログラムの同値性
 ============================
 
+::
+
+    Require Export Imp_J.
+
 宿題割当てについての一般的アドバイス
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -45,6 +49,26 @@ equivalent*)とは、「すべての状態で」2つの評価結果が同じに�
 練習問題: ★★, optional (pairs\_equiv)
 '''''''''''''''''''''''''''''''''''''
 
+::
+
+    (b)
+    [[
+        WHILE BTrue DO
+          WHILE BFalse DO X ::= APlus (AId X) (ANum 1) END
+        END
+    ]]
+    and
+    [[
+        WHILE BFalse DO
+          WHILE BTrue DO X ::= APlus (AId X) (ANum 1) END
+        END
+    ]]
+
+    (* FILL IN HERE *)
+
+    [] *)
+
+FILL IN HERE FILL IN HERE
 以下のプログラムの対の中で、同値なのはどれでしょうか？それぞれについて、"yes"
 か "no" を書きなさい。
 
@@ -135,7 +159,7 @@ equivalent*)とは、「すべての状態で」2つの評価結果が同じに�
         (c; SKIP)
         c.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -208,7 +232,7 @@ equivalent*)とは、「すべての状態で」2つの評価結果が同じに�
         (IFB b THEN c1 ELSE c2 FI)
         c2.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -222,7 +246,7 @@ equivalent*)とは、「すべての状態で」2つの評価結果が同じに�
         (IFB b THEN e1 ELSE e2 FI)
         (IFB BNot b THEN e2 ELSE e1 FI).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -252,7 +276,12 @@ whileループについては、同様の2つ定理があります:ガードが\
 練習問題: ★★ (WHILE\_false\_informal)
 '''''''''''''''''''''''''''''''''''''
 
-WHILE\_falseの非形式的証明を記述しなさい。
+::
+
+    []
+    *)
+
+FILL IN HERE WHILE\_falseの非形式的証明を記述しなさい。
 
 (\* FILL IN HERE \*)☐
 
@@ -271,9 +300,21 @@ WHILE\_falseの非形式的証明を記述しなさい。
    intros H. remember (WHILE b DO c END) as cw. ceval\_cases (induction
    H) Case;
 
+   ::
+
+       inversion Heqcw; subst; clear Heqcw.
+
+   Case "E\_WhileEnd". rewrite Hb in H. inversion H. Case
+   "E\_WhileLoop". apply IHceval2. reflexivity. Qed.
+
 練習問題: ★★, optional (WHILE\_true\_nonterm\_informal)
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+::
+
+    *)
+
+FILL IN HERE
 補題\ ``WHILE_true_nonterm``\ が意味するものを日本語で書きなさい。
 
 (\* FILL IN HERE \*)
@@ -293,7 +334,7 @@ WHILE\_falseの非形式的証明を記述しなさい。
            (WHILE b DO c END)
            (WHILE BTrue DO SKIP END).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -305,6 +346,24 @@ WHILE\_falseの非形式的証明を記述しなさい。
         (IFB b THEN (c; WHILE b DO c END) ELSE SKIP FI).
     Proof.
 
+      intros b c st st'.
+      split; intros Hce.
+      Case "->".
+        inversion Hce; subst.
+        SCase "loop doesn't run".
+          apply E_IfFalse. assumption. apply E_Skip.
+        SCase "loop runs".
+          apply E_IfTrue. assumption.
+          apply E_Seq with (st' := st'0). assumption. assumption.
+      Case "<-".
+        inversion Hce; subst.
+        SCase "loop runs".
+          inversion H5; subst.
+          apply E_WhileLoop with (st' := st'0).
+          assumption. assumption. assumption.
+        SCase "loop doesn't run".
+          inversion H5; subst. apply E_WhileEnd. assumption.  Qed.
+
 練習問題: ★★, optional (seq\_assoc)
 '''''''''''''''''''''''''''''''''''
 
@@ -313,7 +372,7 @@ WHILE\_falseの非形式的証明を記述しなさい。
     Theorem seq_assoc : forall c1 c2 c3,
       cequiv ((c1;c2);c3) (c1;(c2;c3)).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -331,6 +390,9 @@ WHILE\_falseの非形式的証明を記述しなさい。
            inversion H; subst.  simpl.
            replace (update st X (st X)) with st.
            constructor.
+
+
+    Admitted.
 
 何がどうなっているのでしょう？我々の状態は単に識別子から値への関数であることを思い出してください。Coqでは、関数同士が等しいとは、その定義が簡単化(simplification)の範囲での変形を除いて構文的に同じということです。(簡単化だけが
 Coq
@@ -407,7 +469,7 @@ Coq
       aequiv (AId X) e ->
       cequiv SKIP (X ::= e).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -578,7 +640,7 @@ Coq
       cequiv c1 c1' -> cequiv c2 c2' ->
       cequiv (c1;c2) (c1';c2').
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -591,7 +653,7 @@ Coq
       bequiv b b' -> cequiv c1 c1' -> cequiv c2 c2' ->
       cequiv (IFB b THEN c1 ELSE c2 FI) (IFB b' THEN c1' ELSE c2' FI).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -611,7 +673,19 @@ Coq
         (X ::= ANum 0;
          IFB (BEq (AId X) (ANum 0))
          THEN
-           Y ::= AMinus (AId X) (AId X)
+           Y ::= AMinus (AId X) (AId X)   
+         ELSE
+           Y ::= ANum 42
+         FI).
+    Proof.
+      apply CSeq_congruence.
+        apply refl_cequiv.
+        apply CIf_congruence.
+          apply refl_bequiv.
+          apply CAss_congruence. unfold aequiv. simpl.
+            symmetry. apply minus_diag.
+          apply refl_cequiv.
+    Qed.
 
 ケーススタディ: 定数畳み込み
 ----------------------------
@@ -801,6 +875,12 @@ transformation*)とは、プログラムを入力とし、出力としてその�
       unfold atrans_sound. intros a. unfold aequiv. intros st.
       aexp_cases (induction a) Case; simpl;
 
+        try reflexivity;
+
+        try (destruct (fold_constants_aexp a1);
+             destruct (fold_constants_aexp a2);
+             rewrite IHa1; rewrite IHa2; reflexivity). Qed.
+
 練習問題: ★★★, optional (fold\_bexp\_BEq\_informal)
 '''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -911,7 +991,22 @@ transformation*)とは、プログラムを入力とし、出力としてその�
     Proof.
       unfold btrans_sound. intros b. unfold bequiv. intros st.
       bexp_cases (induction b) Case;
-         admit.
+
+        try reflexivity.
+      Case "BEq".
+
+        rename a into a1. rename a0 into a2. simpl.
+        remember (fold_constants_aexp a1) as a1'.
+        remember (fold_constants_aexp a2) as a2'.
+        replace (aeval st a1) with (aeval st a1') by
+           (subst a1'; rewrite <- fold_constants_aexp_sound; reflexivity).
+        replace (aeval st a2) with (aeval st a2') by
+           (subst a2'; rewrite <- fold_constants_aexp_sound; reflexivity).
+        destruct a1'; destruct a2'; try reflexivity.
+
+          simpl. destruct (beq_nat n n0); reflexivity.
+      Case "BLe".
+        (* FILL IN HERE *) admit.
       Case "BNot".
         simpl. remember (fold_constants_bexp b) as b'.
         rewrite IHb.
@@ -945,7 +1040,16 @@ transformation*)とは、プログラムを入力とし、出力としてその�
           SCase "Pf of assertion". apply fold_constants_bexp_sound.
         remember (fold_constants_bexp b) as b'.
         destruct b';
-           Admitted.
+
+          try (apply CIf_congruence; assumption).
+        SCase "b always true".
+          apply trans_cequiv with c1; try assumption.
+          apply IFB_true; assumption.
+        SCase "b always false".
+          apply trans_cequiv with c2; try assumption.
+          apply IFB_false; assumption.
+      Case "WHILE".
+        (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -989,6 +1093,8 @@ Imp\_J.vの\ ``optimize_0plus``\ の定義をふり返ります。
 
 -  この最適化関数の出力の意味のある例を示しなさい。
 -  この最適化関数が健全であることを示しなさい。(この部分は「とても」簡単なはずです。)
+
+   (\* FILL IN HERE \*)
 
 ☐
 
@@ -1096,6 +1202,32 @@ Imp\_J.vの\ ``optimize_0plus``\ の定義をふり返ります。
       unfold subst_equiv_property.
       intros Contra.
 
+
+      remember (X ::= APlus (AId X) (ANum 1);
+                Y ::= AId X)
+          as c1.
+      remember (X ::= APlus (AId X) (ANum 1);
+                Y ::= APlus (AId X) (ANum 1))
+          as c2.
+      assert (cequiv c1 c2) by (subst; apply Contra).
+
+
+      remember (update (update empty_state X 1) Y 1) as st1.
+      remember (update (update empty_state X 1) Y 2) as st2.
+      assert (H1: c1 / empty_state || st1);
+      assert (H2: c2 / empty_state || st2);
+      try (subst;
+           apply E_Seq with (st' := (update empty_state X 1));
+           apply E_Ass; reflexivity).
+      apply H in H1.
+
+
+      assert (Hcontra: st1 = st2)
+        by (apply (ceval_deterministic c2 empty_state); assumption).
+      assert (Hcontra': st1 Y = st2 Y)
+        by (rewrite Hcontra; reflexivity).
+      subst. inversion Hcontra'.  Qed.
+
 練習問題: ★★★★ (better\_subst\_equiv)
 '''''''''''''''''''''''''''''''''''''
 
@@ -1123,8 +1255,13 @@ Imp\_J.vの\ ``optimize_0plus``\ の定義をふり返ります。
       var_not_used_in_aexp i a ->
       aeval (update st i ni) a = aeval st a.
     Proof.
+      (* FILL IN HERE *) Admitted.
 
 ``var_not_used_in_aexp``\ を使って、\ ``subst_equiv_property``\ の正しいバージョンを形式化し、証明しなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1136,7 +1273,7 @@ Imp\_J.vの\ ``optimize_0plus``\ の定義をふり返ります。
     Theorem inequiv_exercise:
       ~ cequiv (WHILE BTrue DO SKIP END) SKIP.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1165,7 +1302,7 @@ Imp\_J.vの\ ``optimize_0plus``\ の定義をふり返ります。
     Lemma stequiv_refl : forall (st : state),
       st ~ st.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1178,7 +1315,7 @@ Imp\_J.vの\ ``optimize_0plus``\ の定義をふり返ります。
       st1 ~ st2 ->
       st2 ~ st1.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1192,7 +1329,7 @@ Imp\_J.vの\ ``optimize_0plus``\ の定義をふり返ります。
       st2 ~ st3 ->
       st1 ~ st3.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1208,7 +1345,7 @@ Imp\_J.vの\ ``optimize_0plus``\ の定義をふり返ります。
       forall (X:id) (n:nat),
       update st1 X n ~ update st2 X n.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1223,7 +1360,7 @@ Imp\_J.vの\ ``optimize_0plus``\ の定義をふり返ります。
       st1 ~ st2 ->
       forall (a:aexp), aeval st1 a = aeval st2 a.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1236,7 +1373,7 @@ Imp\_J.vの\ ``optimize_0plus``\ の定義をふり返ります。
       st1 ~ st2 ->
       forall (b:bexp), beval st1 b = beval st2 b.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1344,7 +1481,7 @@ McCreightに感謝します)。最初に\ ``||``\ のより緩いバージョン
           unfold stequiv. intros. apply update_same.
           reflexivity. assumption.
         Case "<-".
-           Admitted.
+          (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1379,6 +1516,10 @@ C-言語のスタイルの\ ``for``\ ループを拡張しなさい、という�
 
 と同値である。
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題: ★★★, optional (swap\_noninterfering\_assignments)
@@ -1394,6 +1535,8 @@ C-言語のスタイルの\ ``for``\ ループを拡張しなさい、という�
         (l1 ::= a1; l2 ::= a2)
         (l2 ::= a2; l1 ::= a1).
     Proof.
-     Admitted.
+
+
+    (* FILL IN HERE *) Admitted.
 
 ☐

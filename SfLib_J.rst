@@ -15,7 +15,11 @@ Coq スタンダードライブラリから
 
 ::
 
-    Require Omega.
+    Require Omega.   
+    Require Export Bool.
+    Require Export List.
+    Require Export Arith.
+    Require Export Arith.EqNat.
 
 Basics.vから
 ------------
@@ -75,6 +79,14 @@ Basics.vから
       andb b c = true -> c = true.
     Proof.
 
+    Admitted.
+
+    Theorem beq_nat_sym : forall (n m : nat),
+      beq_nat n m = beq_nat m n.
+
+    Admitted.
+
+
 
     Notation "[ ]" := nil.
     Notation "[ x , .. , y ]" := (cons x .. (cons y []) ..).
@@ -109,6 +121,78 @@ Logic.vから
          n <> n' ->
          beq_nat n n' = false.
     Proof. 
+
+    Admitted.
+
+    Theorem ex_falso_quodlibet : forall (P:Prop),
+      False -> P.
+    Proof.
+      intros P contra.
+      inversion contra.  Qed.
+
+    Theorem ev_not_ev_S : forall n,
+      ev n -> ~ ev (S n).
+    Proof. 
+
+    Admitted.
+
+    Theorem ble_nat_true : forall n m,
+      ble_nat n m = true -> n <= m.
+
+    Admitted.
+
+    Theorem ble_nat_false : forall n m,
+      ble_nat n m = false -> ~(n <= m).
+
+    Admitted.
+
+    Inductive appears_in (n : nat) : list nat -> Prop :=
+    | ai_here : forall l, appears_in n (n::l)
+    | ai_later : forall m l, appears_in n l -> appears_in n (m::l).
+
+
+    Definition relation (X:Type) := X -> X -> Prop.
+
+    Definition partial_function {X: Type} (R: relation X) :=
+      forall x y1 y2 : X, R x y1 -> R x y2 -> y1 = y2. 
+
+    Inductive next_nat (n:nat) : nat -> Prop :=
+      | nn : next_nat n (S n).
+
+    Inductive total_relation : nat -> nat -> Prop :=
+      tot : forall n m : nat, total_relation n m.
+
+    Inductive empty_relation : nat -> nat -> Prop := .
+
+    Inductive refl_step_closure (X:Type) (R: relation X) 
+                                : X -> X -> Prop :=
+      | rsc_refl  : forall (x : X),
+                     refl_step_closure X R x x
+      | rsc_step : forall (x y z : X),
+                        R x y ->
+                        refl_step_closure X R y z ->
+                        refl_step_closure X R x z.
+    Implicit Arguments refl_step_closure [[X]]. 
+
+    Tactic Notation "rsc_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "rsc_refl" | Case_aux c "rsc_step" ].
+
+    Theorem rsc_R : forall (X:Type) (R:relation X) (x y : X),
+           R x y -> refl_step_closure R x y.
+    Proof.
+      intros X R x y r.
+      apply rsc_step with y. apply r. apply rsc_refl.   Qed.
+
+    Theorem rsc_trans :
+      forall (X:Type) (R: relation X) (x y z : X),
+          refl_step_closure R x y  ->
+          refl_step_closure R y z ->
+          refl_step_closure R x z.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+
 
     Inductive id : Type := 
       Id : nat -> id.

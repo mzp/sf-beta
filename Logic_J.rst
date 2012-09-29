@@ -1,6 +1,10 @@
 Logic\_J: Coqにおける論理
 =========================
 
+::
+
+    Require Export "Prop_J".
+
 Coqの組み込み論理は非常に小さく、帰納的定義(``Inductive``)、全称記号(``forall``)、ならば(``->``)だけです。しかしそれ以外の論理演算子（かつ、または、否定、存在量化子、等号など）はこれら組み込みのものから定義できます。
 
 全称記号 と ならば
@@ -71,6 +75,8 @@ conjが四つの引数（\ ``P``\ 、\ ``Q``\ という命題と、\ ``P``\ 、\
       (ev 0) /\ (ev 4).
     Proof.
       apply conj.
+       apply ev_0.
+       apply ev_SS. apply ev_SS. apply ev_0.  Qed.
 
 上の定理の証明オブジェクトをよく観察してみてください。
 
@@ -116,7 +122,7 @@ conjが四つの引数（\ ``P``\ 、\ ``Q``\ という命題と、\ ``P``\ 、\
     Theorem proj2 : forall P Q : Prop,
       P /\ Q -> Q.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -125,6 +131,12 @@ conjが四つの引数（\ ``P``\ 、\ ``Q``\ という命題と、\ ``P``\ 、\
     Theorem and_commut : forall P Q : Prop,
       P /\ Q -> Q /\ P.
     Proof.
+
+      intros P Q H.
+      inversion H as [HP HQ].
+      split.
+         apply HQ.
+         apply HP.  Qed.
 
 この定理の証明を理解しやすくするため、再び\ ``Case``\ タクティックについて話します。
 この証明で起こっていることをよく観察すると、P and Q
@@ -146,7 +158,7 @@ conjが四つの引数（\ ``P``\ 、\ ``Q``\ という命題と、\ ``P``\ 、\
     Proof.
       intros P Q R H.
       inversion H as [HP [HQ HR]].
-     Admitted.
+    (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -160,7 +172,8 @@ conjが四つの引数（\ ``P``\ 、\ ``Q``\ という命題と、\ ``P``\ 、\
     Theorem even_ev : forall n : nat,
       (even n -> ev n) /\ (even (S n) -> ev (S n)).
     Proof.
-       Admitted.
+
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -172,7 +185,7 @@ conjが四つの引数（\ ``P``\ 、\ ``Q``\ という命題と、\ ``P``\ 、\
 ::
 
     Definition conj_fact : forall P Q R, P /\ Q -> Q /\ R -> P /\ R :=
-       admit.
+      (* FILL IN HERE *) admit.
 
 ☐
 
@@ -216,6 +229,12 @@ Iff （両含意）
     Theorem iff_refl : forall P : Prop,
       P <-> P.
     Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem iff_trans : forall P Q R : Prop,
+      (P <-> Q) -> (Q <-> R) -> (P <-> R).
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ヒント: もしコンテキストに iff
 を含む仮定があれば、\ ``inversion``\ を使ってそれを二つの含意の式に分割することができます。(なぜそうできるのか考えてみましょう。)
@@ -231,7 +250,7 @@ Iff （両含意）
 ::
 
     Definition MyProp_iff_ev : forall n, MyProp n <-> ev n :=
-       admit.
+      (* FILL IN HERE *) admit.
 
 ☐
 
@@ -302,6 +321,10 @@ Coqのいくつかのタクティックは、証明の際に低レベルな操�
 
 ``or_commut``\ の証明オブジェクトの型がどのようになるか、書き出してみてください。（ただし、定義済みの証明オブジェクトを\ ``Print``\ を使って見てみたりしないこと。）
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 ::
@@ -325,7 +348,7 @@ Coqのいくつかのタクティックは、証明の際に低レベルな操�
     Theorem or_distributes_over_and_2 : forall P Q R : Prop,
       (P \/ Q) /\ (P \/ R) -> P \/ (Q /\ R).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -337,7 +360,7 @@ Coqのいくつかのタクティックは、証明の際に低レベルな操�
     Theorem or_distributes_over_and : forall P Q R : Prop,
       P \/ (Q /\ R) <-> (P \/ Q) /\ (P \/ R).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -354,6 +377,21 @@ Coqのいくつかのタクティックは、証明の際に低レベルな操�
       andb b c = true -> b = true /\ c = true.
     Proof.
 
+      intros b c H.
+      destruct b.
+        Case "b = true". destruct c.
+          SCase "c = true". apply conj. reflexivity. reflexivity.
+          SCase "c = false". inversion H.
+        Case "b = false". inversion H.  Qed.
+
+    Theorem and__andb_true : forall b c,
+      b = true /\ c = true -> andb b c = true.
+    Proof.
+
+      intros b c H.
+      inversion H.
+      rewrite H0. rewrite H1. reflexivity. Qed.
+
 練習問題: ★ (bool\_prop)
 ''''''''''''''''''''''''
 
@@ -362,7 +400,17 @@ Coqのいくつかのタクティックは、証明の際に低レベルな操�
     Theorem andb_false : forall b c,
       andb b c = false -> b = false \/ c = false.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem orb_true : forall b c,
+      orb b c = true -> b = true \/ c = true.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem orb_false : forall b c,
+      orb b c = false -> b = false /\ c = false.
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -431,6 +479,10 @@ Coqで「偽」を定義することができたので、同じ考え方で「�
 ``True``\ を、帰納的な命題として定義しなさい。あなたの定義に対してCoqはどのような帰納的原理を生成してくれるでしょうか。
 （直観的には\ ``True``\ はただ当たり前のように根拠を示される命題であるべきです。代わりに、帰納的原理から帰納的な定義を逆にたどっていくほうが近道だと気づくかもしれません。）
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 しかしながら、\ ``False``\ とは違い、広い意味で解釈すると\ ``True``\ には理論的な意味で奇妙なところがあります。ゴールの証明に使うには当たり前すぎ（それゆえつまらない）、仮定として有意義な情報を与えてくれないのです。
@@ -466,10 +518,24 @@ Coqで否定を扱えるようになるにはある程度慣れが必要です�
       (P /\ ~P) -> Q.
     Proof.
 
+      intros P Q H. inversion H as [HP HNA]. unfold not in HNA.
+      apply HNA in HP. inversion HP.  Qed.
+
+    Theorem double_neg : forall P : Prop,
+      P -> ~~P.
+    Proof.
+
+      intros P H. unfold not. intros G. apply G. apply H.  Qed.
+
 練習問題: ★★, recommended (double\_neg\_inf)
 ''''''''''''''''''''''''''''''''''''''''''''
 
-``double_neg``\ の非形式的な証明を書きなさい。:
+::
+
+    []
+    *)
+
+FILL IN HERE ``double_neg``\ の非形式的な証明を書きなさい。:
 
 *Theorem*:``P``\ implies\ ``~~P``, for any proposition\ ``P``.
 
@@ -483,7 +549,7 @@ Coqで否定を扱えるようになるにはある程度慣れが必要です�
     Theorem contrapositive : forall P Q : Prop,
       (P -> Q) -> (~Q -> ~P).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -495,7 +561,7 @@ Coqで否定を扱えるようになるにはある程度慣れが必要です�
     Theorem not_both_true_and_false : forall P : Prop,
       ~ (P /\ ~P).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -504,6 +570,9 @@ Coqで否定を扱えるようになるにはある程度慣れが必要です�
     Theorem five_not_even :
       ~ ev 5.
     Proof.
+
+      unfold not. intros Hev5. inversion Hev5 as [|n Hev3 Heqn].
+      inversion Hev3 as [|n' Hev1 Heqn']. inversion Hev1.  Qed.
 
 練習問題: ★ ev\_not\_ev\_S
 ''''''''''''''''''''''''''
@@ -515,7 +584,8 @@ Coqで否定を扱えるようになるにはある程度慣れが必要です�
     Theorem ev_not_ev_S : forall n,
       ev n -> ~ ev (S n).
     Proof.
-      unfold not. intros n H. induction H.  Admitted.
+      unfold not. intros n H. induction H. 
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -523,6 +593,10 @@ Coqで否定を扱えるようになるにはある程度慣れが必要です�
 ''''''''''''''''''''''''''''''''
 
 命題\ ``forall P : Prop, ~(P /\ ~P)``\ の形式的でない証明を（英語で）書きなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -533,6 +607,11 @@ Coqで否定を扱えるようになるにはある程度慣れが必要です�
     Theorem classic_double_neg : forall P : Prop,
       ~~P -> P.
     Proof.
+
+      intros P H. unfold not in H.
+
+
+      Admitted.
 
 練習問題: ★★★★★, optional (classical\_axioms)
 '''''''''''''''''''''''''''''''''''''''''''''
@@ -552,6 +631,8 @@ Coqで否定を扱えるようになるにはある程度慣れが必要です�
       ~(~P/\~Q) -> P\/Q.
     Definition implies_to_or := forall P Q:Prop,
       (P->Q) -> (~P\/Q).
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -587,7 +668,7 @@ Coqで否定を扱えるようになるにはある程度慣れが必要です�
          n <> n' ->
          beq_nat n n' = false.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -599,7 +680,7 @@ Coqで否定を扱えるようになるにはある程度慣れが必要です�
     Theorem beq_false_not_eq : forall n m,
       false = beq_nat n m -> n <> m.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -683,12 +764,14 @@ Coqの容易な表記法の定義は、存在量化された命題を記述す�
 
           ex nat (fun n => ev (S n))
 
+    (* FILL IN HERE *)
+
 次の証明オブジェクトの定義を完成させなさい
 
 ::
 
     Definition p : ex nat (fun n => ev (S n)) :=
-     admit.
+    (* FILL IN HERE *) admit.
 
 ☐
 
@@ -704,7 +787,7 @@ Coqの容易な表記法の定義は、存在量化された命題を記述す�
     Theorem dist_not_exists : forall (X:Type) (P : X -> Prop),
       (forall x, P x) -> ~ (exists x, ~ P x).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -721,7 +804,7 @@ middle）」が必要とされる場合もあります。
       forall (X:Type) (P : X -> Prop),
         ~ (exists x, ~ P x) -> (forall x, P x).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -735,7 +818,7 @@ middle）」が必要とされる場合もあります。
     Theorem dist_exists_or : forall (X:Type) (P Q : X -> Prop),
       (exists x, P x \/ Q x) <-> (exists x, P x) \/ (exists x, Q x).
     Proof.
-        Admitted.
+       (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -785,7 +868,7 @@ Coqの標準ライブラリではこちらの定義が採用されています�
     Theorem two_defs_of_eq_coincide : forall (X:Type) (x y : X),
       x = y <-> x =' y.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -898,6 +981,20 @@ Inversion 再び
       3 <= 3.
     Proof.
 
+      apply le_n.  Qed.
+
+    Theorem test_le2 :
+      3 <= 6.
+    Proof.
+
+      apply le_S. apply le_S. apply le_S. apply le_n.  Qed.
+
+    Theorem test_le3 :
+      ~ (2 <= 1).
+    Proof.
+
+      intros H. inversion H. inversion H1.  Qed.
+
 「より小さい」という関係（\ ``n < m``\ ）は、\ ``le``\ を使って定義できます。
 
 ::
@@ -925,12 +1022,20 @@ Inversion 再び
 
 二つの自然数のペア同士の間に成り立つ帰納的な関係\ ``total_relation``\ を定義しなさい。
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題: ★★ (empty\_relation)
 ''''''''''''''''''''''''''''''
 
 自然数の間では決して成り立たない関係\ ``empty_relation``\ を帰納的に定義しなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -952,6 +1057,12 @@ Inversion 再び
        | c4 : forall m n o, R (S m) (S n) (S (S o)) -> R m n o
        | c5 : forall m n o, R m n o -> R n m o.
 
+
+    []
+    *)
+
+FILL IN HERE
+
 -  次の命題のうち、この関係を満たすと証明できると言えるのはどれでしょうか。
    -``R 1 1 2``
 
@@ -968,6 +1079,10 @@ Inversion 再び
 それは、もし\ ``R m n o``\ が true
 なら\ ``m``\ についてどんなことが言えるでしょうか？\ ``n``\ や\ ``o``\ についてはどうでしょうか？その逆は？
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 ::
@@ -983,6 +1098,8 @@ Inversion 再び
 ::
 
     Inductive all (X : Type) (P : X -> Prop) : list X -> Prop :=
+      (* FILL IN HERE *)
+    .
 
 ``Poly.v``\ の練習問題\ ``forall_exists_challenge``\ に出てきた関数\ ``forallb``\ を思い出してみましょう。
 
@@ -997,6 +1114,10 @@ Inversion 再び
 属性\ ``all``\ を使って関数\ ``forallb``\ の仕様を書き、それを満たすことを証明しなさい。できるだけその仕様が厳格になるようにすること。
 
 関数\ ``forallb``\ の重要な性質が、あなたの仕様から洩れている、ということはありませんか？
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1030,12 +1151,20 @@ Coq
 課題は、この仕様をCoq
 の定理の形に書き直し、それを証明することです。（ヒント：まず、一つのりすとが二つのリストをマージしたものとなっている、ということを示す定義を書く必要がありますが、これは帰納的な関係であって、\ ``Fixpoint``\ で書くようなものではありません。）
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題: ★★★★★, optional (filter\_challenge\_2)
 ''''''''''''''''''''''''''''''''''''''''''''''''
 
 ``filter``\ の振る舞いに関する特性を別の切り口で表すとこうなります。「\ ``test``\ の結果が\ ``true``\ なる要素だけでできた、リスト\ ``l``\ のすべての部分リストの中で、\ ``filter test l``\ が最も長いリストである。」これを形式的に記述し、それを証明しなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1059,8 +1188,18 @@ Coq
     Lemma appears_in_app : forall {X:Type} (xs ys : list X) (x:X),
          appears_in x (xs ++ ys) -> appears_in x xs \/ appears_in x ys.
     Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Lemma app_appears_in : forall {X:Type} (xs ys : list X) (x:X),
+         appears_in x xs \/ appears_in x ys -> appears_in x (xs ++ ys).
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 では、\ ``appears_in``\ を使って命題\ ``disjoint X l1 l2``\ を定義してください。これは、型\ ``X``\ の二つのリスト\ ``l1``\ 、\ ``l2``\ が共通の要素を持たない場合にのみ証明可能な命題です。
+
+::
+
+    (* FILL IN HERE *)
 
 次は、\ ``appears_in``\ を使って帰納的な命題\ ``no_repeats X l``\ を定義してください。これは,
 型\ ``X``\ のリスト\ ``l``\ の中のどの要素も、他の要素と異なっている場合のみ証明できるような命題です。例えば、\ ``no_repeats nat [1,2,3,4``]
@@ -1068,7 +1207,15 @@ Coq
 は証明可能ですが、\ ``no_repeats nat [1,2,1``]
 や\ ``no_repeats bool [true,true``] は証明できないようなものです。
 
+::
+
+    (* FILL IN HERE *)
+
 最後に、\ ``disjoint``\ 、\ ``no_repeats``\ 、\ ``++``\ （リストの結合）の三つを使った、何か面白い定理を考えて、それを証明してください。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1085,7 +1232,52 @@ Coq
     Theorem O_le_n : forall n,
       0 <= n.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem n_le_m__Sn_le_Sm : forall n m,
+      n <= m -> S n <= S m.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem Sn_le_Sm__n_le_m : forall n m,
+      S n <= S m -> n <= m.
+    Proof.
+      intros n m.  generalize dependent n.  induction m.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem le_plus_l : forall a b,
+      a <= a + b.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem plus_lt : forall n1 n2 m,
+      n1 + n2 < m ->
+      n1 < m /\ n2 < m.
+    Proof.
+     (* FILL IN HERE *) Admitted.
+
+    Theorem lt_S : forall n m,
+      n < m ->
+      n < S m.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem ble_nat_true : forall n m,
+      ble_nat n m = true -> n <= m.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem ble_nat_n_Sn_false : forall n m,
+      ble_nat n (S m) = false ->
+      ble_nat n m = false.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem ble_nat_false : forall n m,
+      ble_nat n m = false -> ~(n <= m).
+    Proof.
+
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1104,6 +1296,8 @@ repeats ではありますが stutter ではありません。）
 ::
 
     Inductive nostutter:  list nat -> Prop :=
+     (* FILL IN HERE *)
+    .
 
 できた定義が、以下のテストを通過することを確認してください。通過できないものがあったら、定義を修正してもかまいません。あなたの書いた定義が、正しくはあるけれど私の用意した模範解答と異なっているかもしれません。その場合、このテストを通過するために別の証明を用意する必要があります。
 
@@ -1114,6 +1308,19 @@ repeats ではありますが stutter ではありません。）
 ::
 
     Example test_nostutter_1:      nostutter [3,1,4,1,5,6].
+    (* FILL IN HERE *) Admitted.
+
+
+    Example test_nostutter_2:  nostutter [].
+    (* FILL IN HERE *) Admitted.
+
+
+    Example test_nostutter_3:  nostutter [5].
+    (* FILL IN HERE *) Admitted.
+
+
+    Example test_nostutter_4:      not (nostutter [3,1,1,4]).
+    (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1130,12 +1337,21 @@ repeats ではありますが stutter ではありません。）
     Lemma app_length : forall {X:Type} (l1 l2 : list X),
       length (l1 ++ l2) = length l1 + length l2.
     Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Lemma appears_in_app_split : forall {X:Type} (x:X) (l:list X),
+      appears_in x l ->
+      exists l1, exists l2, l = l1 ++ (x::l2).
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 そして、述語\ ``repeats``\ の定義をします（以前の練習問題\ ``no_repeats``\ に類似したものです）。それは\ ``repeats X l``\ が、「\ ``l``\ の中に少なくとも一組の同じ要素（型\ ``X``\ の）を含む」という主張となるようなものです。
 
 ::
 
     Inductive repeats {X:Type} : list X -> Prop :=
+      (* FILL IN HERE *)
+    .
 
 この「鳩の巣定理」を定式化する方法を一つ挙げておきましょう。リスト\ ``l2``\ が鳩の巣に貼られたラベルの一覧を、リスト\ ``l1``\ はそのラベルの、アイテムへの割り当ての一覧を表しているとします。もしラベルよりも沢山のアイテムがあったならば、少なくとも二つのアイテムに同じラベルが貼られていることになります。おそらくこの証明には「排中律（\ ``excluded_middle``\ ）」が必要になるでしょう。
 
@@ -1147,7 +1363,7 @@ repeats ではありますが stutter ではありません。）
       length l2 < length l1 ->
       repeats l1.
     Proof.  intros X l1. induction l1.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 

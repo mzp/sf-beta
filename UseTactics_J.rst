@@ -50,7 +50,8 @@ Foundations")のコースの主要な章から抽出した例を使います。�
       c / st || st2 ->
       st1 = st2.
     Proof.
-      introv E1 E2.
+      introv E1 E2. 
+    Admitted.
 
 仮定に名前をつける必要がない場合には、引数なしで\ ``introv``\ を呼ぶことができます。
 
@@ -60,7 +61,8 @@ Foundations")のコースの主要な章から抽出した例を使います。�
           c / st || st'
       <-> exists i, ceval_step st c i = Some st'.
     Proof.
-      introv.
+      introv. 
+    Admitted.
 
 タクティック\ ``introv``\ は\ ``forall``\ と\ ``->``\ が交互に現れる主張にも適用できます。
 
@@ -69,7 +71,8 @@ Foundations")のコースの主要な章から抽出した例を使います。�
     Theorem ceval_deterministic': forall c st st1,
       (c / st || st1) -> forall st2, (c / st || st2) -> st1 = st2.
     Proof.
-      introv E1 E2.
+      introv E1 E2. 
+    Admitted.
 
 ``intros``\ と同様、\ ``introv``\ も、構造化パターンを引数にとることができます。
 
@@ -80,6 +83,8 @@ Foundations")のコースの主要な章から抽出した例を使います。�
           c / st || st'.
     Proof.
       introv [i E].
+
+    Admitted.
 
 注記:
 タクティック\ ``introv``\ は、定義をunfoldしないと仮定が出てこない場合にも使うことができます。
@@ -107,7 +112,12 @@ Coqの\ ``inversion``\ タクティックは3つの点で十分なものだと�
       cequiv (SKIP; c) c.
     Proof.
       introv. split; intros H.
-      dup.
+      dup. 
+
+      inversion H. subst. inversion H2. subst. assumption.
+
+      inverts H. inverts H2. assumption.
+    Admitted.
 
 次にもう少し興味深い例を見てみましょう。
 
@@ -120,7 +130,11 @@ Coqの\ ``inversion``\ タクティックは3つの点で十分なものだと�
     Proof.
       introv E1 E2. generalize dependent st2.
       (ceval_cases (induction E1) Case); intros st2 E2.
-      admit. admit.
+      admit. admit. 
+      dup. 
+       inversion E2. subst. admit.
+       inverts E2. admit.
+    Admitted.
 
 タクティック\ ``inverts H as.``\ は\ ``inverts H``\ と同様ですが、次の点が違います。\ ``inverts H as.``\ では、生成される変数と仮定がコンテキストではなくゴールに置かれます。この戦略により、これらの変数と仮定に\ ``intros``\ や\ ``introv``\ を使って明示的に名前を付けることができるようになります。
 
@@ -137,6 +151,26 @@ Coqの\ ``inversion``\ タクティックは3つの点で十分なものだと�
       Case "E_Skip". reflexivity.
       Case "E_Ass".
 
+         subst n.
+        reflexivity.
+      Case "E_Seq".
+
+         intros st3 Red1 Red2.
+        assert (st' = st3) as EQ1.
+          SCase "Proof of assertion". apply IHE1_1; assumption.
+        subst st3.
+        apply IHE1_2. assumption.
+      Case "E_IfTrue".
+        SCase "b1 evaluates to true".
+
+           intros.
+          apply IHE1. assumption.
+        SCase "b1 evaluates to false (contradiction)".
+           intros.
+          rewrite H in H5. inversion H5.
+
+    Admitted.
+
 ``inversion``\ を使ったとするとゴールが1つだけできる場合に、\ ``inverts``\ を\ ``inverts H as H1 H2 H3``\ の形で呼ぶことができます。このとき新しい仮定は\ ``H1``\ 、\ ``H2``\ 、\ ``H3``\ と名付けられます。言い換えると、タクティック\ ``inverts H as H1 H2 H3``\ は、\ ``invert H; introv H1 H2 H3``\ と同じです。例を示します。
 
 ::
@@ -145,7 +179,9 @@ Coqの\ ``inversion``\ タクティックは3つの点で十分なものだと�
       cequiv (SKIP; c) c.
     Proof.
       introv. split; intros H.
-      inverts H as U V.
+      inverts H as U V. 
+      inverts U. assumption.
+    Admitted.
 
 より複雑な例です。特に、invertされた仮定の名前を再利用できることを示しています。
 
@@ -160,6 +196,34 @@ Coqの\ ``inversion``\ タクティックは3つの点で十分なものだと�
             T.
     Proof.
       dup 3.
+
+
+      intros C. destruct C.
+      inversion H. subst. clear H.
+      inversion H5. subst. clear H5.
+      inversion H4. subst. clear H4.
+      inversion H2. subst. clear H2.
+      inversion H5. subst. clear H5.
+      inversion H1.
+
+
+      intros C. destruct C.
+      inverts H as H1.
+      inverts H1 as H2.
+      inverts H2 as H3.
+      inverts H3 as H4.
+      inverts H4.
+
+
+      intros C. destruct C.
+      inverts H as H.
+      inverts H as H.
+      inverts H as H.
+      inverts H as H.
+      inverts H.
+    Qed.
+
+    End InvertsExamples.
 
 注意:
 稀に、仮定\ ``H``\ をinvertするときに\ ``H``\ をコンテキストから除去したくない場合があります。その場合には、タクティック\ ``inverts keep H``\ を使うことができます。キーワード\ ``keep``\ は仮定をコンテキストに残せということを示しています。
@@ -187,6 +251,17 @@ Coqの\ ``inversion``\ タクティックは3つの点で十分なものだと�
       unfold update. subst.
       dup.
 
+
+      remember (beq_id k1 k2) as b. destruct b.
+        apply beq_id_eq in Heqb. subst. reflexivity.
+        reflexivity.
+
+
+      cases' (beq_id k1 k2) as E.
+        apply beq_id_eq in E. subst. reflexivity.
+        reflexivity.
+    Qed.
+
 タクティック\ ``cases_if``\ はゴールまたはコンテキストの\ ``if``\ の引数として現れる式\ ``E``\ に対して\ ``cases E``\ を呼びます。このため、タクティック\ ``cases_if``\ を使うと、ゴールに既に現れている式をコピーする必要がなくなります。先と同様、互換性のため、ライブラリには\ ``cases_if'``\ というタクティックが用意されています。また\ ``cases_if' as H``\ という形で、生成される等式に名前をつけることができます。
 
 ::
@@ -197,6 +272,14 @@ Coqの\ ``inversion``\ タクティックは3つの点で十分なものだと�
     Proof.
       intros x1 k1 k2 f Heq.
       unfold update. subst.
+
+
+      cases_if' as E.
+        apply beq_id_eq in E. subst. reflexivity.
+        reflexivity.
+    Qed.
+
+    End CasesExample.
 
 n-引数論理演算のためのタクティック
 ----------------------------------
@@ -261,6 +344,20 @@ n個の存在限量についての記法を用意しています。例えば、\
       store_well_typed ST st ->
       value t \/ exists t' st', t / st ==> t' / st'.
 
+    Proof with eauto.
+      intros ST t T st Ht HST. remember (@empty ty) as Gamma.
+      (has_type_cases (induction Ht) Case); subst; try solve by inversion...
+      Case "T_App".
+        right. destruct IHHt1 as [Ht1p | Ht1p]...
+        SCase "t1 is a value".
+          inversion Ht1p; subst; try solve by inversion.
+          destruct IHHt2 as [Ht2p | Ht2p]...
+          SSCase "t2 steps".
+            inversion Ht2p as [t2' [st' Hstep]].
+            exists (tm_app (tm_abs x T t) t2') st'...
+
+    Admitted.
+
 注記:
 n個の存在限量についての同様の機能が標準ライブラリのモジュール\ ``Coq.Program.Syntax``\ で提供されています。ただ、このモジュールのものは限量対象が4つまでしか対応していませんが、\ ``LibTactics``\ は10個までサポートしています。
 
@@ -296,6 +393,17 @@ n個の存在限量についての同様の機能が標準ライブラリのモ�
     Proof.
       dup.
 
+      intros n m.
+      assert (H: 0 + n = n). reflexivity. rewrite -> H.
+      reflexivity.
+
+
+      intros n m.
+      asserts_rewrite (0 + n = n).
+        reflexivity. 
+        reflexivity. 
+    Qed.
+
 注記:``asserts_rewrite (E1 = E2) in H``\ と書いた場合、
 -------------------------------------------------------
 
@@ -310,7 +418,9 @@ n個の存在限量についての同様の機能が標準ライブラリのモ�
     Proof.
       intros n m.
       cuts_rewrite (0 + n = n).
-        reflexivity.
+        reflexivity. 
+        reflexivity. 
+    Qed.
 
 より一般には、タクティック\ ``asserts_rewrite``\ と\ ``cuts_rewrite``\ は補題を引数としてとることができます。例えば\ ``asserts_rewrite (forall a b, a*(S b) = a*b+a)``\ と書くことができます。この記法は\ ``a``\ や\ ``b``\ が大きな項であるとき便利です。その大きな項を繰り返さずに済むからです。
 
@@ -320,6 +430,9 @@ n個の存在限量についての同様の機能が標準ライブラリのモ�
       (u + v) * (S (w * x + y)) = z.
     Proof.
       intros. asserts_rewrite (forall a b, a*(S b) = a*b+a).
+
+
+    Admitted.
 
 タクティック\ ``substs``
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -331,7 +444,9 @@ n個の存在限量についての同様の機能が標準ライブラリのモ�
     Lemma demo_substs : forall x y (f:nat->nat),
       x = f x -> y = x -> y = f x.
     Proof.
-      intros. substs.
+      intros. substs. 
+      assumption.
+    Qed.
 
 タクティック\ ``fequals``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -346,6 +461,8 @@ n個の存在限量についての同様の機能が標準ライブラリのモ�
     Proof.
       intros. fequals.
 
+    Admitted.
+
 タクティック\ ``applys_eq``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -353,7 +470,23 @@ n個の存在限量についての同様の機能が標準ライブラリのモ�
 
 ::
 
-    Axiom big_expression_using : nat->nat.
+    Axiom big_expression_using : nat->nat. 
+
+    Lemma demo_applys_eq_1 : forall (P:nat->nat->Prop) x y z,
+      P x (big_expression_using z) ->
+      P x (big_expression_using y).
+    Proof.
+      introv H. dup.
+
+
+      assert (Eq: big_expression_using y = big_expression_using z).
+        admit. 
+      rewrite Eq. apply H.
+
+
+      applys_eq H 1.
+        admit. 
+    Qed.
 
 もしミスマッチが\ ``P``\ の第2引数ではなく第1引数だった場合には、\ ``applys_eq H 2``\ と書きます。出現は右からカウントされることを思い出してください。
 
@@ -375,6 +508,10 @@ n個の存在限量についての同様の機能が標準ライブラリのモ�
       P (big_expression_using x1) (big_expression_using y1).
     Proof.
       introv H. applys_eq H 1 2.
+
+    Admitted.
+
+    End EqualityExamples.
 
 便利な略記法をいくつか
 ----------------------
@@ -404,6 +541,13 @@ n個の存在限量についての同様の機能が標準ライブラリのモ�
       beval st b = true -> (bassn b) st.
     Proof.
       intros b st Hbe. dup.
+
+
+      unfold bassn. assumption.
+
+
+      unfolds. assumption.
+    Qed.
 
 注記:
 タクティック\ ``hnf``\ はすべての先頭の定数をunfoldしますが、これと対照的に\ ``unfolds``\ は1つだけunfoldします。
@@ -457,6 +601,20 @@ n個の存在限量についての同様の機能が標準ライブラリのモ�
     Proof.
       dup.
 
+
+      intros Gamma x U v t S Htypt Htypv.
+      generalize dependent S. generalize dependent Gamma.
+      induction t; intros; simpl.
+      admit. admit. admit. admit. admit. admit.
+
+
+      introv Htypt Htypv. gen S Gamma.
+      induction t; intros; simpl.
+      admit. admit. admit. admit. admit. admit.
+    Qed.
+
+    End GenExample.
+
 タクティック\ ``skip``\ 、\ ``skip_rewrite``\ 、\ ``skip_goal``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -471,7 +629,10 @@ n個の存在限量についての同様の機能が標準ライブラリのモ�
     Example astep_example1 :
       (APlus (ANum 3) (AMult (ANum 3) (ANum 4))) / empty_state ==>a* (ANum 15).
     Proof.
-      eapply rsc_step. skip.
+      eapply rsc_step. skip. 
+      eapply rsc_step. skip. skip.
+
+    Admitted.
 
 タクティック\ ``skip H: P``\ は仮定\ ``H: P``\ をコンテキストに追加します。このときに命題\ ``P``\ が真かどうかのチェックはしません。このタクティックは、事実を、証明を後回しにして利用するのに便利です。注意:``skip H: P``\ は単に\ ``assert (H:P). skip.``\ の略記法です。
 
@@ -491,6 +652,17 @@ n個の存在限量についての同様の機能が標準ライブラリのモ�
     Proof.
       dup.
 
+
+      intros n m.
+      assert (H: 0 + n = n). skip. rewrite -> H.
+      reflexivity.
+
+
+      intros n m.
+      skip_rewrite (0 + n = n).
+      reflexivity.
+    Qed.
+
 注記:
 タクティック\ ``skip_rewrite``\ は実際は\ ``asserts_rewrite``\ と同じように補題を引数としてとることができます。
 
@@ -503,6 +675,28 @@ n個の存在限量についての同様の機能が標準ライブラリのモ�
       c / st || st2 ->
       st1 = st2.
     Proof.
+
+      skip_goal.
+
+      introv E1 E2. gen st2.
+      (ceval_cases (induction E1) Case); introv E2; inverts E2 as.
+      Case "E_Skip". reflexivity.
+      Case "E_Ass".
+        subst n.
+        reflexivity.
+      Case "E_Seq".
+        intros st3 Red1 Red2.
+        assert (st' = st3) as EQ1.
+          SCase "Proof of assertion".
+
+             eapply IH. eapply E1_1. eapply Red1.
+        subst st3.
+
+         eapply IH. eapply E1_2. eapply Red2.
+
+    Admitted.
+
+    End SkipExample.
 
 タクティック\ ``sort``
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -524,7 +718,11 @@ n個の存在限量についての同様の機能が標準ライブラリのモ�
       intros c st st1 st2 E1 E2.
       generalize dependent st2.
       (ceval_cases (induction E1) Case); intros st2 E2; inverts E2.
-      admit. admit.
+      admit. admit. 
+      sort. 
+    Admitted.
+
+    End SortExamples.
 
 高度な補題具体化のためのタクティック
 ------------------------------------
@@ -551,6 +749,12 @@ first-match アルゴリズムを使います。
     Module ExamplesLets.
       Require Import Subtyping_J.
 
+
+
+    Axiom typing_inversion_var : forall (G:context) (x:id) (T:ty),
+      has_type G (tm_var x) T ->
+      exists S, G x = Some S /\ subtype S T.
+
 最初に、型が\ ``has_type G (tm_var x) T``\ である仮定\ ``H``\ を持つとします。タクティック\ ``lets K: typing_inversion_var H``\ を呼ぶことで補題\ ``typing_inversion_var``\ を結論として得ることができます。以下の通りです。
 
 ::
@@ -559,6 +763,17 @@ first-match アルゴリズムを使います。
       has_type G (tm_var x) T -> True.
     Proof.
       intros G x T H. dup.
+
+
+      lets K: typing_inversion_var H.
+      destruct K as (S & Eq & Sub).
+      admit.
+
+
+      lets (S & Eq & Sub): typing_inversion_var H.
+      admit.
+
+    Qed.
 
 今、\ ``G``\ 、\ ``x``\ 、\ ``T``\ の値を知っていて、\ ``S``\ を得たいとします。また、サブゴールとして\ ``has_type G (tm_var x) T``\ が生成されていたとします。\ ``typing_inversion_var``\ の残った引数のすべてをサブゴールとして生成したいことを示すために、'\_'を三連した記号\ ``___``\ を使います。(後に、\ ``___``\ を書くのを避けるために\ ``forwards``\ という略記用タクティックを導入します。)
 
@@ -607,6 +822,15 @@ first-match アルゴリズムを使います。
       (forall n m, n <= m -> n < m+1) -> True.
     Proof.
       intros H.
+
+
+      lets K: H 3. 
+        clear K.
+
+
+      lets K: H __ 3. 
+        clear K.
+    Admitted.
 
 注意:
 証明記述の中で\ ``H``\ の名前を言う必要がないとき、\ ``lets H: E0 E1 E2``\ の代わりに\ ``lets: E0 E1 E2``\ と書くことができます。
@@ -659,8 +883,21 @@ first-match アルゴリズムを使います。
 
         (* old: destruct (typing_inversion_var _ _ _ Htypt) as [T [Hctx Hsub]].*) 
 
+    lets (T&Hctx&Hsub): typing_inversion_var Htypt.
+        unfold extend in Hctx.
+        remember (beq_id x y) as e. destruct e... 
+        SCase "x=y".
+          apply beq_id_eq in Heqe. subst.
+          inversion Hctx; subst. clear Hctx.
+          apply context_invariance with empty...
+          intros x Hcontra.
+
 
            (* old: destruct (free_in_context _ _ S empty Hcontra) as [T' HT']... *) 
+
+    lets [T' HT']: free_in_context S empty Hcontra...
+            inversion HT'.
+      Case "tm_app".
 
 
         (* 練習問題: 次の[destruct]を[lets]に換えなさい *)
@@ -669,11 +906,40 @@ first-match アルゴリズムを使います。
         (* old: destruct (typing_inversion_app _ _ _ _ Htypt) as [T1 [Htypt1 Htypt2]].
                 eapply T_App... *)
 
+    (* FILL IN HERE *) admit.
+
+      Case "tm_abs".
+        rename i into y. rename t into T1.
+
 
         (* old: destruct (typing_inversion_abs _ _ _ _ _ Htypt). *)
 
+    lets (T2&Hsub&Htypt2): typing_inversion_abs Htypt.
+
 
         (* old: apply T_Sub with (ty_arrow T1 T2)... *)
+
+    applys T_Sub (ty_arrow T1 T2)...
+         apply T_Abs...
+        remember (beq_id x y) as e. destruct e. 
+        SCase "x=y".
+          eapply context_invariance...
+          apply beq_id_eq in Heqe. subst.
+          intros x Hafi. unfold extend.
+          destruct (beq_id y x)...
+        SCase "x<>y".
+          apply IHt. eapply context_invariance...
+          intros z Hafi. unfold extend.
+          remember (beq_id y z) as e0. destruct e0...
+          apply beq_id_eq in Heqe0. subst.
+          rewrite <- Heqe...
+      Case "tm_true".
+        lets: typing_inversion_true Htypt...
+      Case "tm_false".
+        lets: typing_inversion_false Htypt...
+      Case "tm_if".
+        lets (Htyp1&Htyp2&Htyp3): typing_inversion_if Htypt...
+      Case "tm_unit".
 
 
         (* old: assert (subtype ty_Unit S) by apply (typing_inversion_unit _ _ Htypt)... *)

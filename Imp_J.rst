@@ -249,6 +249,11 @@ tactics")と言っても良いでしょう。
       intros.
       destruct n.
 
+        Case "n=0". simpl. reflexivity.
+        Case "n=Sn'". simpl. reflexivity.
+
+    Qed.
+
 上の証明を\ ``;``\ タクティカルを使って簡単化できます。
 
 ::
@@ -256,6 +261,13 @@ tactics")と言っても良いでしょう。
     Lemma foo' : forall n, ble_nat 0 n = true.
     Proof.
       intros.
+
+      destruct n;
+
+      simpl;
+
+      reflexivity.
+    Qed.
 
 ``try``\ と\ ``;``\ の両方を使うと、ちょっと前に悩まされた証明の繰り返しを取り除くことができます。
 
@@ -266,6 +278,16 @@ tactics")と言っても良いでしょう。
     Proof.
       intros e.
       induction e;
+
+        try (simpl; rewrite IHe1; rewrite IHe2; reflexivity).
+      Case "ANum". reflexivity.
+      Case "APlus".
+        destruct e1;
+
+          try (simpl; simpl in IHe1; rewrite IHe1; rewrite IHe2; reflexivity).
+
+        SCase "e1 = ANum n". destruct n;
+          simpl; rewrite IHe2; reflexivity.   Qed.
 
 実際的にはCoqの専門家は、\ ``try``\ を\ ``induction``\ のようなタクティックと一緒に使うことで、多くの似たような「簡単な」場合を一度に処理します。これは自然に非形式的な証明に対応します。
 
@@ -314,6 +336,16 @@ tactics")と言っても良いでしょう。
     Proof.
       intros e.
       induction e;
+
+        try (simpl; rewrite IHe1; rewrite IHe2; reflexivity);
+
+        try reflexivity.
+
+      Case "APlus".
+        destruct e1; try (simpl; simpl in IHe1; rewrite IHe1;
+                          rewrite IHe2; reflexivity).
+        SCase "e1 = ANum n". destruct n;
+          simpl; rewrite IHe2; reflexivity.  Qed.
 
 新しいタクティック記法を定義する
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -373,17 +405,32 @@ Coqはまた、タクティックスクリプトを「プログラミングす�
         try (simpl; rewrite IHe1; rewrite IHe2; reflexivity);
         try reflexivity.
 
+
+      Case "APlus".
+        aexp_cases (destruct e1) SCase;
+          try (simpl; simpl in IHe1; rewrite IHe1; rewrite IHe2; reflexivity).
+        SCase "ANum". destruct n;
+          simpl; rewrite IHe2; reflexivity.  Qed.
+
 練習問題: ★★★ (optimize\_0plus\_b)
 ''''''''''''''''''''''''''''''''''
 
 ``optimize_0plus``\ の変換が\ ``aexp``\ の値を変えないことから、\ ``bexp``\ の値を変えずに、\ ``bexp``\ に現れる\ ``aexp``\ をすべて変換するために\ ``optimize_0plus``\ が適用できるべきでしょう。\ ``bexp``\ についてこの変換をする関数を記述しなさい。そして、それが健全であることを証明しなさい。ここまで見てきたタクティカルを使って証明を可能な限りエレガントにしなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
 練習問題: ★★★★, optional (optimizer)
 ''''''''''''''''''''''''''''''''''''
 
-設計練習:
+::
+
+    *)
+
+FILL IN HERE 設計練習:
 定義した\ ``optimize_0plus``\ 関数で実装された最適化は、算術式やブール式に対して考えられるいろいろな最適化の単なる1つに過ぎません。より洗練された最適化関数を記述し、その正しさを証明しなさい。
 
 (\* FILL IN HERE \*)
@@ -549,6 +596,15 @@ Andrew Appel
       (a || n) <-> aeval a = n.
     Proof.
 
+      split.
+      Case "->".
+        intros H; induction H; subst; reflexivity.
+      Case "<-".
+        generalize dependent n.
+        induction a; simpl; intros; subst; constructor;
+           try apply IHa1; try apply IHa2; reflexivity.
+    Qed.
+
 練習問題: ★★, optional (bevalR)
 '''''''''''''''''''''''''''''''
 
@@ -660,7 +716,7 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
     Theorem beq_id_eq : forall i1 i2,
       true = beq_id i1 i2 -> i1 = i2.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -672,7 +728,7 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
     Theorem beq_id_false_not_eq : forall i1 i2,
       beq_id i1 i2 = false -> i1 <> i2.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -684,7 +740,7 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
     Theorem not_eq_beq_id_false : forall i1 i2,
       i1 <> i2 -> beq_id i1 i2 = false.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -696,7 +752,7 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
     Theorem beq_id_sym: forall i1 i2,
       beq_id i1 i2 = beq_id i2 i1.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -731,7 +787,7 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
     Theorem update_eq : forall n X st,
       (update st X n) X = n.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -744,7 +800,7 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
       beq_id V2 V1 = false ->
       (update st V2 n) V1 = (st V1).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -758,7 +814,7 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
     Theorem update_example : forall (n:nat),
       (update empty_state (Id 2) n) (Id 3) = 0.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -770,7 +826,7 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
     Theorem update_shadow : forall x1 x2 k1 k2 (f : state),
        (update  (update f k2 x1) k2 x2) k1 = (update f k2 x2) k1.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -783,7 +839,7 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
       f k1 = x1 ->
       (update f k1 x1) k2 = f k2.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -796,7 +852,7 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
       beq_id k2 k1 = false ->
       (update (update f k2 x1) k1 x2) k3 = (update (update f k1 x2) k2 x1) k3.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -809,7 +865,15 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
 
     Inductive aexp : Type :=
       | ANum : nat -> aexp
-      | AId : id -> aexp
+      | AId : id -> aexp                
+      | APlus : aexp -> aexp -> aexp
+      | AMinus : aexp -> aexp -> aexp
+      | AMult : aexp -> aexp -> aexp.
+
+    Tactic Notation "aexp_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "ANum" | Case_aux c "AId" | Case_aux c "APlus"
+      | Case_aux c "AMinus" | Case_aux c "AMult" ].
 
 変数の略記法:
 
@@ -848,7 +912,33 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
     Fixpoint aeval (st : state) (e : aexp) : nat :=
       match e with
       | ANum n => n
-      | AId X => st X
+      | AId X => st X                                        
+      | APlus a1 a2 => (aeval st a1) + (aeval st a2)
+      | AMinus a1 a2  => (aeval st a1) - (aeval st a2)
+      | AMult a1 a2 => (aeval st a1) * (aeval st a2)
+      end.
+
+    Fixpoint beval (st : state) (e : bexp) : bool :=
+      match e with
+      | BTrue       => true
+      | BFalse      => false
+      | BEq a1 a2   => beq_nat (aeval st a1) (aeval st a2)
+      | BLe a1 a2   => ble_nat (aeval st a1) (aeval st a2)
+      | BNot b1     => negb (beval st b1)
+      | BAnd b1 b2  => andb (beval st b1) (beval st b2)
+      end.
+
+    Example aexp1 :
+      aeval (update empty_state X 5)
+            (APlus (ANum 3) (AMult (AId X) (ANum 2)))
+      = 13.
+    Proof. reflexivity. Qed.
+
+    Example bexp1 :
+      beval (update empty_state X 5)
+            (BAnd BTrue (BNot (BLe (AId X) (ANum 4))))
+      = true.
+    Proof. reflexivity. Qed.
 
 コマンド
 --------
@@ -1015,7 +1105,8 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
               then ceval_step1 st c1
               else ceval_step1 st c2
         | WHILE b1 DO c1 END =>
-            st
+            st  
+      end.
 
 次の試みでは、評価が常に停止することを保証するため、数の引数を追加して「ステップ指数」として用いています。
 
@@ -1135,6 +1226,7 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
 ::
 
     Definition pup_to_n : com :=
+      (* FILL IN HERE *) admit.
 
 ☐
 
@@ -1142,6 +1234,10 @@ rules*)と呼ばれる、より読みやすいグラフィカルな形で書く�
 ''''''''''''''''''''''''''''''
 
 ``X``\ が偶数だったら\ ``Z``\ に\ ``0``\ を、そうでなければ\ ``Z``\ に\ ``1``\ をセットする\ ``While``\ プログラムを書きなさい。テストには\ ``ceval_test``\ を使いなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1246,6 +1342,14 @@ Coq
        || (update (update empty_state X 2) Z 4).
     Proof.
 
+      apply E_Seq with (update empty_state X 2).
+      Case "assignment command".
+        apply E_Ass. reflexivity.
+      Case "if command".
+        apply E_IfFalse.
+          reflexivity.
+          apply E_Ass. reflexivity.  Qed.
+
 練習問題: ★★ (ceval\_example2)
 ''''''''''''''''''''''''''''''
 
@@ -1255,7 +1359,7 @@ Coq
         (X ::= ANum 0; Y ::= ANum 1; Z ::= ANum 2) / empty_state ||
         (update (update (update empty_state X 0) Y 1) Z 2).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1324,6 +1428,12 @@ Coq
 練習問題: ★★★★ (ceval\_step\_\_ceval\_inf)
 ''''''''''''''''''''''''''''''''''''''''''
 
+::
+
+    []
+    *)
+
+FILL IN HERE
 いつものテンプレートにのっとって、\ ``ceval_step__ceval``\ の形式的でない証明を書きましょう。(帰納的に定義された値の場合分けに対するテンプレートは、帰納法の仮定がないこと以外は帰納法と同じ見た目になるはずです。)単に形式的な証明のステップを書き写すだけでなく、人間の読者に主要な考えが伝わるようにしなさい。
 
 (\* FILL IN HERE \*)☐
@@ -1391,7 +1501,7 @@ Coq
     Proof.
       intros c st st' Hce.
       ceval_cases (induction Hce) Case.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1496,10 +1606,17 @@ Coq
     Proof.
       intros st n st' HX Heval.
 
+      inversion Heval. subst.
+      apply update_eq.  Qed.
+
 練習問題: ★★★, recommended (XtimesYinZ\_spec)
 '''''''''''''''''''''''''''''''''''''''''''''
 
 XtimesYinZ の Imp プログラムの仕様を書いて証明しなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1513,7 +1630,8 @@ XtimesYinZ の Imp プログラムの仕様を書いて証明しなさい。
     Proof.
       intros st st' contra. unfold loop in contra.
       remember (WHILE BTrue DO SKIP END) as loopdef.
-       Admitted.
+
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1539,7 +1657,13 @@ XtimesYinZ の Imp プログラムの仕様を書いて証明しなさい。
 ::
 
     Inductive no_whilesR: com -> Prop :=
-      Admitted.
+     (* FILL IN HERE *)
+      .
+
+    Theorem no_whiles_eqv:
+       forall c, no_whiles c = true <-> no_whilesR c.
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1550,6 +1674,10 @@ while ループを含まない Imp
 プログラムは必ず停止します。これを定理として記述し、証明しなさい。
 
 (``no_whiles``\ と\ ``no_whilesR``\ のどちらでも好きなほうを使いなさい。)
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1593,6 +1721,46 @@ while ループを含まない Imp
       inversion H4; subst; clear H4.
       unfold update. simpl.
 
+      destruct (st Z) as [| z'].
+        apply ex_falso_quodlibet. apply HZnz. reflexivity.
+      rewrite <- Hm. rewrite <- mult_assoc.
+      replace (S z' - 1) with z' by omega.
+      reflexivity.  Qed.
+
+    Theorem fact_loop_preserves_invariant : forall st st' x,
+         fact_invariant x st ->
+         fact_loop / st || st' ->
+         fact_invariant x st'.
+    Proof.
+      intros st st' x H Hce.
+      remember fact_loop as c.
+      ceval_cases (induction Hce) Case;
+                  inversion Heqc; subst; clear Heqc.
+      Case "E_WhileEnd".
+
+        assumption.
+      Case "E_WhileLoop".
+
+        apply IHHce2.
+          apply fact_body_preserves_invariant with st;
+                try assumption.
+          intros Contra. simpl in H0; subst.
+          rewrite Contra in H0. inversion H0.
+          reflexivity.  Qed.
+
+    Theorem guard_false_after_loop: forall b c st st',
+         (WHILE b DO c END) / st || st' ->
+         beval st' b = false.
+    Proof.
+      intros b c st st' Hce.
+      remember (WHILE b DO c END) as cloop.
+      ceval_cases (induction Hce) Case;
+         inversion Heqcloop; subst; clear Heqcloop.
+      Case "E_WhileEnd".
+        assumption.
+      Case "E_WhileLoop".
+        apply IHHce2. reflexivity.  Qed.
+
 これらをすべてつなぎ合わせましょう...
 
 ::
@@ -1609,6 +1777,20 @@ while ループを含まない Imp
       inversion H1; subst; clear H1.
       rename st' into st''. simpl in H5.
 
+      remember (update (update st Z (st X)) Y 1) as st'.
+      assert (fact_invariant (st X) st').
+        subst. unfold fact_invariant, update. simpl. omega.
+
+      assert (fact_invariant (st X) st'').
+        apply fact_loop_preserves_invariant with st'; assumption.
+      unfold fact_invariant in H0.
+
+      apply guard_false_after_loop in H5. simpl in H5.
+      destruct (st'' Z).
+      Case "st'' Z = 0". simpl in H0. omega.
+      Case "st'' Z > 0 (impossible)". inversion H5.
+    Qed.
+
 この、状態をつっついて定義を展開するような全体のやり方を、何かより強力な補題や、より一貫性のある推論原理で改善できないのかと思う人もいるかもしれません。実は、それがまさに次の章(``Hoare_J.v``)の主題です!
 
 練習問題: ★★★★, optional (subtract\_slowly\_spec)
@@ -1621,6 +1803,8 @@ while ループを含まない Imp
 
     Definition ss_invariant (x:nat) (z:nat) (st:state) :=
       minus (st Z) (st X) = minus z x.
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1640,6 +1824,10 @@ Coq
 各ループの繰り返しの最後に実行される主張、および(d)
 ループの本体を構成する主張によってパラメタ化されていなければなりません。(``for``\ ループに対する具体的な表記の構成を気にする必要はありませんが、やりたければ自由にやって構いません。)
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題: ★★★, optional (short\_circuit)
@@ -1648,6 +1836,10 @@ Coq
 多くのモダンなプログラミング言語はブール演算子\ ``and``\ に対し、「省略した」実行を使っています。\ ``BAnd b1 b2``\ を実行するには、まず\ ``b1``\ を評価します。それが\ ``false``\ に評価されるならば、\ ``b2``\ の評価はせず、すぐに\ ``BAnd``\ 式全体の結果を\ ``false``\ に評価します。そうでなければ、\ ``BAnd``\ 式の結果を決定するため、\ ``b2``\ が評価されます。
 
 このように\ ``BAnd``\ を省略して評価する、別のバージョンの\ ``beval``\ を書き、それが\ ``beavl``\ と等価であることを証明しなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 練習問題: ★★★★, recommended (stack\_compiler)
 '''''''''''''''''''''''''''''''''''''''''''''
@@ -1706,17 +1898,36 @@ Virtual Machine
     Fixpoint s_execute (st : state) (stack : list nat)
                        (prog : list sinstr)
                      : list nat :=
+    (* FILL IN HERE *) admit.
+
+    Example s_execute1 :
+         s_execute empty_state []
+           [SPush 5, SPush 3, SPush 1, SMinus]
+       = [2, 5].
+    (* FILL IN HERE *) Admitted.
+
+    Example s_execute2 :
+         s_execute (update empty_state X 3) [3,4]
+           [SPush 4, SLoad X, SMult, SPlus]
+       = [15, 4].
+    (* FILL IN HERE *) Admitted.
 
 次に、\ ``aexp``\ をスタック機械のプログラムにコンパイルする関数を書きなさい。このプログラムを実行する影響は、もとの式の値をスタックに積むことと同じでなければなりません。
 
 ::
 
     Fixpoint s_compile (e : aexp) : list sinstr :=
+    (* FILL IN HERE *) admit.
 
 最後に、\ ``compile``\ 関数が正しく振る舞うことを述べている以下の定理を証明しなさい。まずは使える帰納法の仮定を得るため、より一般的な補題を述べる必要があるでしょう。
 
 ::
 
-    Admitted.
+    (* FILL IN HERE *)
+
+    Theorem s_compile_correct : forall (st : state) (e : aexp),
+      s_execute st [] (s_compile e) = [ aeval st e ].
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐

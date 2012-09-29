@@ -100,7 +100,26 @@ evaluation*)の初歩的な形となります。これから見るように、�
     Fixpoint pe_aexp (pe_st : pe_state) (a : aexp) : aexp :=
       match a with
       | ANum n => ANum n
-      | AId i => match pe_lookup pe_st i with
+      | AId i => match pe_lookup pe_st i with 
+                 | Some n => ANum n
+                 | None => AId i
+                 end
+      | APlus a1 a2 =>
+          match (pe_aexp pe_st a1, pe_aexp pe_st a2) with
+          | (ANum n1, ANum n2) => ANum (n1 + n2)
+          | (a1', a2') => APlus a1' a2'
+          end
+      | AMinus a1 a2 =>
+          match (pe_aexp pe_st a1, pe_aexp pe_st a2) with
+          | (ANum n1, ANum n2) => ANum (n1 - n2)
+          | (a1', a2') => AMinus a1' a2'
+          end
+      | AMult a1 a2 =>
+          match (pe_aexp pe_st a1, pe_aexp pe_st a2) with
+          | (ANum n1, ANum n2) => ANum (n1 * n2)
+          | (a1', a2') => AMult a1' a2'
+          end
+      end.
 
 この部分評価器は定数を畳み込みしますが、可算の結合性の処理はしません。
 
@@ -131,6 +150,12 @@ evaluation*)の初歩的な形となります。これから見るように、�
         try (destruct (pe_aexp pe_st a1);
              destruct (pe_aexp pe_st a2);
              rewrite IHa1; rewrite IHa2; reflexivity).
+
+      Case "AId".
+        remember (pe_lookup pe_st i) as l. destruct l.
+        SCase "Some". rewrite H with (n:=n) by apply Heql. reflexivity.
+        SCase "None". reflexivity.
+    Qed.
 
 しかしながらすぐに、部分評価器で代入を削除することも行ないたくなるでしょう。例えば、
 
@@ -222,6 +247,9 @@ evaluation*)の初歩的な形となります。これから見るように、�
         try (destruct (pe_aexp pe_st a1);
              destruct (pe_aexp pe_st a2);
              rewrite IHa1; rewrite IHa2; reflexivity).
+
+      rewrite pe_override_correct. destruct (pe_lookup pe_st i); reflexivity.
+    Qed.
 
 ブール式
 ~~~~~~~~
@@ -897,6 +925,30 @@ Coqでこの場合をプログラミングするには、いくつものさら�
           (WHILE b1 DO c1 END) / pe_st
             || (WHILE BTrue DO SKIP END) / pe_st / SKIP
 
+      | PE_WhileFixed : forall pe_st pe_st' pe_st'' b1 c1 c1' c2',
+          pe_bexp pe_st b1 <> BFalse ->
+          pe_bexp pe_st b1 <> BTrue ->
+          c1 / pe_st || c1' / pe_st' / SKIP ->
+          (WHILE b1 DO c1 END) / pe_st'
+            || c2' / pe_st'' / (WHILE b1 DO c1 END) ->
+          pe_compare pe_st pe_st'' = [] ->
+          (WHILE b1 DO c1 END) / pe_st
+            || (WHILE pe_bexp pe_st b1 DO c1'; c2' END) / pe_st / SKIP
+
+      where "c1 '/' st '||' c1' '/' st' '/' c''" := (pe_com c1 st c1' st' c'').
+
+    Tactic Notation "pe_com_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "PE_Skip"
+      | Case_aux c "PE_AssStatic" | Case_aux c "PE_AssDynamic"
+      | Case_aux c "PE_Seq"
+      | Case_aux c "PE_IfTrue" | Case_aux c "PE_IfFalse" | Case_aux c "PE_If"
+      | Case_aux c "PE_WhileEnd" | Case_aux c "PE_WhileLoop"
+      | Case_aux c "PE_While" | Case_aux c "PE_WhileFixedEnd"
+      | Case_aux c "PE_WhileFixedLoop" | Case_aux c "PE_WhileFixed" ].
+
+    Hint Constructors pe_com.
+
 例
 ~~
 
@@ -1324,7 +1376,8 @@ states*)で、基本ブロックには写像されません。これから、よ
       | entry => Some (Assign X (ANum 0) (Goto loop))
       | loop => Some (If (BLe (ANum 1) (AId Y)) body done)
       | body => Some parity_body
-      | done => None
+      | done => None 
+      end.
 
 基本ブロックとは異なり、プログラムは停止しないこともあります。これからプログラムの評価は再帰関数ではなく帰納的関係\ ``peval``\ でモデル化します。
 

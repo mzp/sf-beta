@@ -94,6 +94,12 @@ Gen\_J: 帰納法の仮定の一般化
         SCase "m = S m'". inversion eq.
       Case "n = S n'".
 
+        intros m eq.
+
+        destruct m as [| m'].
+        SCase "m = O". inversion eq.  
+        SCase "m = S m'".
+
           assert (n' = m') as H.
           SSCase "Proof of assertion". apply IHn'.
             inversion eq. reflexivity.
@@ -138,6 +144,8 @@ Gen\_J: 帰納法の仮定の一般化
     Proof.
       intros n m.
 
+      generalize dependent n.
+
       induction m as [| m'].
       Case "m = O". simpl. intros n eq. destruct n as [| n'].
         SCase "n = O". reflexivity.
@@ -178,7 +186,7 @@ Gen\_J: 帰納法の仮定の一般化
          n + n = m + m ->
          n = m.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ``l``\ に関する帰納法で示しなさい。
 
@@ -188,9 +196,9 @@ Gen\_J: 帰納法の仮定の一般化
          length l = n ->
          index (S n) l = None.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
-☐
+FILL IN HERE ☐
 
 練習問題: ★★★, optional (index\_after\_last\_informal)
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -214,7 +222,7 @@ Gen\_J: 帰納法の仮定の一般化
          length l = n ->
          length (snoc l v) = S n.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -230,7 +238,7 @@ Gen\_J: 帰納法の仮定の一般化
          length (l1 ++ (x :: l2)) = n ->
          S (length (l1 ++ l2)) = n.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -245,6 +253,6 @@ Gen\_J: 帰納法の仮定の一般化
          length l = n ->
          length (l ++ l) = n + n.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐

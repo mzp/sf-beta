@@ -1,6 +1,11 @@
 MoreStlc\_J: 単純型付きラムダ計算についてさらに
 ===============================================
 
+::
+
+    Require Export Stlc_J.
+    Require Import Relations.
+
 STLCの単純な拡張
 ----------------
 
@@ -378,7 +383,12 @@ point")という用語は通常の数学とまったく同じ意味で使って�
 練習問題: ★ (halve\_fix)
 ''''''''''''''''''''''''
 
-次の再帰的定義を\ ``fix``\ を用いた定義に直しなさい:
+::
+
+    []
+    *)
+
+FILL IN HERE 次の再帰的定義を\ ``fix``\ を用いた定義に直しなさい:
 
 ::
 
@@ -393,6 +403,12 @@ point")という用語は通常の数学とまったく同じ意味で使って�
 練習問題: ★, recommended (fact\_steps)
 ''''''''''''''''''''''''''''''''''''''
 
+::
+
+    []
+    *)
+
+FILL IN HERE
 項\ ``fact 1``\ が正規形まで簡約されるステップ列を書き下しなさい(ただし、算術演算については通常の簡約規則を仮定します)。
 
 (\* FILL IN HERE \*)☐
@@ -750,6 +766,7 @@ n-個のバリアントは、リストや木構造のような任意の帰納的
           tm_abs y T (if beq_id x y then t1 else (subst x s t1))
       | tm_app t1 t2 =>
           tm_app (subst x s t1) (subst x s t2)
+      (* FILL IN HERE *)
 
 
       (* ここを埋めなさい *)
@@ -771,6 +788,7 @@ n-個のバリアントは、リストや木構造のような任意の帰納的
     Inductive value : tm -> Prop :=
       | v_abs : forall x T11 t12,
           value (tm_abs x T11 t12)
+      (* FILL IN HERE *)
 
 
       (* ここを埋めなさい *)
@@ -792,6 +810,7 @@ n-個のバリアントは、リストや木構造のような任意の帰納的
              value v1 ->
              t2 ==> t2' ->
              (tm_app v1 t2) ==> (tm_app v1 t2')
+      (* FILL IN HERE *)
 
 
       (* ここを埋めなさい *)
@@ -801,6 +820,7 @@ n-個のバリアントは、リストや木構造のような任意の帰納的
     Tactic Notation "step_cases" tactic(first) ident(c) :=
       first;
       [ Case_aux c "ST_AppAbs" | Case_aux c "ST_App1" | Case_aux c "ST_App2"
+        (* FILL IN HERE *)
 
 
         (* ここを埋めなさい *)
@@ -825,6 +845,18 @@ n-個のバリアントは、リストや木構造のような任意の帰納的
 
     Inductive has_type : context -> tm -> ty -> Prop :=
 
+      | T_Var : forall Gamma x T,
+          Gamma x = Some T ->
+          has_type Gamma (tm_var x) T
+      | T_Abs : forall Gamma x T11 T12 t12,
+          has_type (extend Gamma x T11) t12 T12 ->
+          has_type Gamma (tm_abs x T11 t12) (ty_arrow T11 T12)
+      | T_App : forall T1 T2 Gamma t1 t2,
+          has_type Gamma t1 (ty_arrow T1 T2) ->
+          has_type Gamma t2 T1 ->
+          has_type Gamma (tm_app t1 t2) T2
+      (* FILL IN HERE *)
+
 
       (* ここを埋めなさい *)
 
@@ -835,6 +867,7 @@ n-個のバリアントは、リストや木構造のような任意の帰納的
     Tactic Notation "has_type_cases" tactic(first) ident(c) :=
       first;
       [ Case_aux c "T_Var" | Case_aux c "T_Abs" | Case_aux c "T_App"
+        (* FILL IN HERE *)
 
 
         (* ここを埋めなさい *)
@@ -919,6 +952,19 @@ T1
                 (tm_nat 0)))))
         (tm_nat 5)
         (tm_nat 6).
+
+
+
+
+      auto 10.
+    Qed.
+
+    Example numtest_reduces :
+      test ==>* tm_nat 5.
+    Proof.
+      unfold test. normalize.
+    Qed.
+    *)
 
 動くだけ定義が十分に行えたと思ったなら、以降の\ ``Example``\ のコメントをはずしなさい。
 
@@ -1157,6 +1203,21 @@ x::l -> (g x)::(f l))]
                              (tm_app (tm_var f) (tm_var l))))))).
 
 
+    Example map_typechecks :
+      has_type empty map
+        (ty_arrow (ty_arrow ty_Nat ty_Nat)
+          (ty_arrow (ty_List ty_Nat)
+            (ty_List ty_Nat))).
+    Proof. unfold map. auto 10. Qed.
+
+    Example map_example :
+      tm_app (tm_app map (tm_abs a ty_Nat (tm_succ (tm_var a))))
+             (tm_cons (tm_nat 1) (tm_cons (tm_nat 2) (tm_nil ty_Nat)))
+      ==>* (tm_cons (tm_nat 2) (tm_cons (tm_nat 3) (tm_nil ty_Nat))).
+    Proof. unfold map. normalize. Qed.
+    *)
+
+
     (* 
     (* 上記の最後の [Hint Extern] のコメントが外されていることを確認すること... *)
     Example map_typechecks :
@@ -1338,6 +1399,7 @@ even 4)]
              [ST_App1] より [t1 t2 ==> t1' t2] である。 *)
 
     destruct H as [t1' Hstp]. exists (tm_app t1' t2)...
+      (* FILL IN HERE *)
 
 
       (* ここを埋めなさい *)
@@ -1360,6 +1422,7 @@ even 4)]
             y <> x  ->
             appears_free_in x t12 ->
             appears_free_in x (tm_abs y T11 t12)
+      (* FILL IN HERE *)
 
 
       (* ここを埋めなさい *)
@@ -1382,6 +1445,7 @@ even 4)]
         apply T_Abs... apply IHhas_type. intros y Hafi.
         unfold extend. remember (beq_id x y) as e.
         destruct e...
+      (* FILL IN HERE *)
 
 
       (* ここを埋めなさい *)
@@ -1399,6 +1463,7 @@ even 4)]
         destruct IHHtyp as [T' Hctx]... exists T'.
         unfold extend in Hctx.
         apply not_eq_beq_id_false in H2. rewrite H2 in Hctx...
+      (* FILL IN HERE *)
 
 
       (* ここを埋めなさい *)
@@ -1513,6 +1578,7 @@ even 4)]
           remember (beq_id y z) as e0. destruct e0...
           apply beq_id_eq in Heqe0. subst.
           rewrite <- Heqe...
+      (* FILL IN HERE *)
 
 
       (* ここを埋めなさい *)
@@ -1566,6 +1632,7 @@ even 4)]
 
     apply substitution_preserves_typing with T1...
           inversion HT1...
+      (* FILL IN HERE *)
 
 
       (* ここを埋めなさい *)

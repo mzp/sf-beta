@@ -1,6 +1,10 @@
 Types\_J: 型システム
 ====================
 
+::
+
+    Require Export Smallstep_J.
+
 次に取り組むのは型システムです。型システムは、式をその評価結果の「かたち」で分類する静的解析手法です。まずは、ブール値と数のみから成る言語から始め、型に関する基本的な考え方や型付け規則、型保存（type
 preservation）や進行（progress）といった型システムに関する基礎的な定理を導入します。その次に単純型付きラムダ計算に移ります。単純型付きラムダ計算は（Coq
 を含む）近代的な関数型プログラミング言語すべての中心概念になっています。
@@ -195,6 +199,9 @@ Coq
     Proof.
       normalize.
 
+
+    Qed.
+
 またさらに、ゴールに存在量化された変数を入れて証明し、ある項の正規形を計算する、という使い方もあります。
 
 ::
@@ -320,7 +327,7 @@ theorem）が成り立たないということです。すなわち、正規形�
     Example some_tm_is_stuck :
       exists t, stuck t.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -337,7 +344,7 @@ theorem）が成り立たないということです。すなわち、正規形�
     Lemma value_is_nf : forall t,
       value t -> step_normal_form t.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -351,7 +358,7 @@ theorem）が成り立たないということです。すなわち、正規形�
     Theorem step_deterministic:
       partial_function step.
     Proof with eauto.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -463,7 +470,7 @@ theorem）が成り立たないということです。すなわち、正規形�
       has_type (tm_succ t) ty_Nat ->
       has_type t ty_Nat.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -477,6 +484,12 @@ theorem）が成り立たないということです。すなわち、正規形�
 
 次の証明を完成させなさい。
 
+::
+
+    []
+    *)
+
+FILL IN HERE
 定理:``|- t : T``\ であれば、\ ``t``\ は値であるか、さもなければある\ ``t'``\ に対して\ ``t ==> t'``\ である。
 
 証明:``|- t : T``\ の導出に関する帰納法で証明する。
@@ -499,7 +512,22 @@ theorem）が成り立たないということです。すなわち、正規形�
     Proof with auto.
       intros t T HT.
       has_type_cases (induction HT) Case...
-       Admitted.
+
+
+      Case "T_If".
+        right. destruct IHHT1.
+        SCase "t1 is a value". destruct H.
+          SSCase "t1 is a bvalue". destruct H.
+            SSSCase "t1 is tm_true".
+              exists t2...
+            SSSCase "t1 is tm_false".
+              exists t3...
+          SSCase "t1 is an nvalue".
+            solve by inversion 2.  
+        SCase "t1 can take a step".
+          destruct H as [t1' H1].
+          exists (tm_if t1' t2 t3)...
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -530,6 +558,12 @@ reduction）性と呼ばれることが多々あります。これは、この�
 
 以下の証明を完成させなさい。
 
+::
+
+    []
+    *)
+
+FILL IN HERE
 定理:``|- t : T``\ かつ\ ``t ==> t'``\ ならば\ ``|- t' : T``
 
 証明:``|- t : T``\ の導出に関する帰納法で証明する。
@@ -555,7 +589,16 @@ reduction）性と呼ばれることが多々あります。これは、この�
       intros t t' T HT HE.
       generalize dependent t'.
       has_type_cases (induction HT) Case;
-              Admitted.
+
+             intros t' HE;
+
+             try (solve by inversion).
+        Case "T_If". inversion HE; subst.
+          SCase "ST_IFTrue". assumption.
+          SCase "ST_IfFalse". assumption.
+          SCase "ST_If". apply T_If; try assumption.
+            apply IHHT1; assumption.
+        (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -571,7 +614,7 @@ reduction）性と呼ばれることが多々あります。これは、この�
       t ==> t' ->
       has_type t' T.
     Proof with eauto.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -605,7 +648,12 @@ Coq の\ ``Fixpoint``\ 言語や、次の章で見る単純型付きラムダ計
 練習問題: ★, recommended (subject\_expansion)
 '''''''''''''''''''''''''''''''''''''''''''''
 
-主部簡約性が成り立つのなら、その逆の性質、主部展開（subject
+::
+
+    []
+    *)
+
+FILL IN HERE 主部簡約性が成り立つのなら、その逆の性質、主部展開（subject
 expansion）性も成り立つかどうか考えるのが合理的でしょう。すなわち、\ ``t ==> t'``\ かつ\ ``has_type t' T``\ ならば\ ``has_type t T``\ は常に成り立つでしょうか。そうだと思うのなら、証明しなさい。そうでないと思うのなら、反例を挙げなさい。
 
 (\* FILL IN HERE \*)☐
@@ -750,7 +798,13 @@ expansion）性も成り立つかどうか考えるのが合理的でしょう�
 練習問題: ★ (remove\_predzero)
 ''''''''''''''''''''''''''''''
 
-``E_PredZero``\ には少し直感に反するところがあります。 0 の前者を 0
+::
+
+    []
+    *)
+
+FILL IN HERE ``E_PredZero``\ には少し直感に反するところがあります。 0
+の前者を 0
 と定義するよりは、未定義とした方が意味があるように感じられるでしょう。これは\ ``step``\ の定義から\ ``E_PredZero``\ を取り除くだけで実現できるでしょうか？
 
 (\* FILL IN HERE \*)☐
@@ -758,6 +812,12 @@ expansion）性も成り立つかどうか考えるのが合理的でしょう�
 練習問題: ★★★★, optional (prog\_pres\_bigstep)
 ''''''''''''''''''''''''''''''''''''''''''''''
 
+::
+
+    []
+    *)
+
+FILL IN HERE
 評価関係をビッグステップスタイルで定義したとしましょう。その場合、進行と型保存性に当たるものとしては何が適切でしょうか。
 
 (\* FILL IN HERE \*)☐

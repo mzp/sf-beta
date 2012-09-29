@@ -1,6 +1,10 @@
 Subtyping\_J :サブタイプ
 ========================
 
+::
+
+    Require Export MoreStlc_J.
+
 概念
 ----
 
@@ -451,7 +455,21 @@ STLCに必要となる重要な拡張を既に概観してきました:(1)サブ
                       ssn  : Integer }
 
     Definition Person : ty :=
-     Admitted.
+    (* FILL IN HERE *) admit.
+    Definition Student : ty :=
+    (* FILL IN HERE *) admit.
+    Definition Employee : ty :=
+    (* FILL IN HERE *) admit.
+
+    Example sub_student_person :
+      subtype Student Person.
+    Proof.
+    (* FILL IN HERE *) Admitted.
+
+    Example sub_employee_person :
+      subtype Employee Person.
+    Proof.
+    (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -460,6 +478,11 @@ STLCに必要となる重要な拡張を既に概観してきました:(1)サブ
     Example subtyping_example_0 :
       subtype (ty_arrow C Person)
               (ty_arrow C ty_Top).
+
+    Proof.
+      apply S_Arrow.
+        apply S_Refl. auto.
+    Qed.
 
 以下の事実のほとんどは、Coqで証明するのは簡単です。練習問題の効果を十分に得るために、どうやって証明するか自分が理解していることを紙に証明を書いて確認しなさい。
 
@@ -471,7 +494,9 @@ STLCに必要となる重要な拡張を既に概観してきました:(1)サブ
     Example subtyping_example_1 :
       subtype (ty_arrow ty_Top Student)
               (ty_arrow (ty_arrow C C) Person).
-     Admitted.
+
+    Proof with eauto.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -483,7 +508,9 @@ STLCに必要となる重要な拡張を既に概観してきました:(1)サブ
     Example subtyping_example_2 :
       subtype (ty_arrow ty_Top Person)
               (ty_arrow Person ty_Top).
-     Admitted.
+
+    Proof with eauto.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -672,6 +699,43 @@ STLCに必要となる重要な拡張を既に概観してきました:(1)サブ
 
     Inductive has_type : context -> tm -> ty -> Prop :=
 
+      | T_Var : forall Gamma x T,
+          Gamma x = Some T ->
+          has_type Gamma (tm_var x) T
+      | T_Abs : forall Gamma x T11 T12 t12,
+          has_type (extend Gamma x T11) t12 T12 ->
+          has_type Gamma (tm_abs x T11 t12) (ty_arrow T11 T12)
+      | T_App : forall T1 T2 Gamma t1 t2,
+          has_type Gamma t1 (ty_arrow T1 T2) ->
+          has_type Gamma t2 T1 ->
+          has_type Gamma (tm_app t1 t2) T2
+      | T_True : forall Gamma,
+           has_type Gamma tm_true ty_Bool
+      | T_False : forall Gamma,
+           has_type Gamma tm_false ty_Bool
+      | T_If : forall t1 t2 t3 T Gamma,
+           has_type Gamma t1 ty_Bool ->
+           has_type Gamma t2 T ->
+           has_type Gamma t3 T ->
+           has_type Gamma (tm_if t1 t2 t3) T
+      | T_Unit : forall Gamma,
+          has_type Gamma tm_unit ty_Unit
+
+      | T_Sub : forall Gamma t S T,
+          has_type Gamma t S ->
+          subtype S T ->
+          has_type Gamma t T.
+
+    Hint Constructors has_type.
+
+    Tactic Notation "has_type_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "T_Var" | Case_aux c "T_Abs"
+      | Case_aux c "T_App" | Case_aux c "T_True"
+      | Case_aux c "T_False" | Case_aux c "T_If"
+      | Case_aux c "T_Unit"
+      | Case_aux c "T_Sub" ].
+
 型付けの例
 ~~~~~~~~~~
 
@@ -685,15 +749,27 @@ STLCに必要となる重要な拡張を既に概観してきました:(1)サブ
 練習問題: ★, optional (typing\_example\_0)
 ''''''''''''''''''''''''''''''''''''''''''
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題: ★★, optional (typing\_example\_1)
 '''''''''''''''''''''''''''''''''''''''''''
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題: ★★, optional (typing\_example\_2)
 '''''''''''''''''''''''''''''''''''''''''''
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -728,6 +804,7 @@ lemmas*)と呼ばれます。これは、後の証明でもともとの\ ``inver
     Proof with auto.
       intros U Hs.
       remember ty_Bool as V.
+      (* FILL IN HERE *) Admitted.
 
 練習問題: ★★★, optional (sub\_inversion\_arrow)
 '''''''''''''''''''''''''''''''''''''''''''''''
@@ -742,7 +819,7 @@ lemmas*)と呼ばれます。これは、後の証明でもともとの\ ``inver
       intros U V1 V2 Hs.
       remember (ty_arrow V1 V2) as V.
       generalize dependent V2. generalize dependent V1.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -767,7 +844,7 @@ forms"、つまり値)を示します。
       exists x, exists S1, exists s2,
          s = tm_abs x S1 s2.
     Proof with eauto.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 

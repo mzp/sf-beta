@@ -40,6 +40,8 @@ Poly\_J:多相性と高階関数
 
     Check nil.
 
+    Check cons.
+
 ここで出てきた"``forall X``\ "というのは、コンストラクタに追加された引数で、後に続く引数で型を特定させるものです。\ ``nil``\ や\ ``cons``\ が使われる際、例えば\ ``2``\ と\ ``1``\ を要素に持つリストは、以下のように表されます。
 
 ::
@@ -250,7 +252,30 @@ Poly\_J:多相性と高階関数
 ::
 
     Fixpoint repeat (X : Type) (n : X) (count : nat) : list X :=
-       Admitted.
+      (* FILL IN HERE *) admit.
+
+    Example test_repeat1:
+      repeat bool true 2 = cons true (cons true nil).
+     (* FILL IN HERE *) Admitted.
+
+    Theorem nil_app : forall X:Type, forall l:list X,
+      app [] l = l.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem rev_snoc : forall X : Type,
+                         forall v : X,
+                         forall s : list X,
+      rev (snoc s v) = v :: (rev s).
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem snoc_with_append : forall X : Type,
+                             forall l1 l2 : list X,
+                             forall v : X,
+      snoc (l1 ++ l2) v = l1 ++ (snoc l2 v).
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -338,6 +363,13 @@ Poly\_J:多相性と高階関数
 
 ``split``\ 関数は\ ``combine``\ と全く逆で、ペアのリストを引数に受け取り、リストのペアを返します。多くの関数型言語とで\ ``unzip``\ と呼ばれているものです。次の段落のコメントをはずし、\ ``split``\ 関数の定義を完成させなさい。続くテストを通過することも確認しなさい。
 
+::
+
+    Example test_split:
+      split [(1,false),(2,false)] = ([1,2],[false,false]).
+    Proof. reflexivity.  Qed.
+    *)
+
 ☐
 
 多相的なオプション
@@ -380,7 +412,7 @@ Poly\_J:多相性と高階関数
 ::
 
     Definition hd_opt {X : Type} (l : list X)  : option X :=
-       admit.
+      (* FILL IN HERE *) admit.
 
 再び、暗黙的に定義された引数を明示的に指定してみましょう。関数名の前に\ ``@``\ をつければいいのでしたね。
 
@@ -389,7 +421,9 @@ Poly\_J:多相性と高階関数
     Check @hd_opt.
 
     Example test_hd_opt1 :  hd_opt [1,2] = Some 1.
-      Admitted.
+     (* FILL IN HERE *) Admitted.
+    Example test_hd_opt2 :   hd_opt  [[1],[2]]  = Some [1].
+     (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -467,7 +501,7 @@ Coqでは、\ ``f : A -> B -> C``\ という型の関数は\ ``A -> (B -> C)``\ 
 
     Definition prod_uncurry {X Y Z : Type}
       (f : X -> Y -> Z) (p : X * Y) : Z :=
-       admit.
+      (* FILL IN HERE *) admit.
 
 (考える練習:
 次のコマンドを実行する前に、\ ``prod_curry``\ と\ ``prod_uncurry``\ の型を考えなさい。)
@@ -480,7 +514,13 @@ Coqでは、\ ``f : A -> B -> C``\ という型の関数は\ ``A -> (B -> C)``\ 
     Theorem uncurry_curry : forall (X Y Z : Type) (f : X -> Y -> Z) x y,
       prod_curry (prod_uncurry f) x y = f x y.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem curry_uncurry : forall (X Y Z : Type)
+                                   (f : (X * Y) -> Z) (p : X * Y),
+      prod_uncurry (prod_curry f) p = f p.
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -560,7 +600,15 @@ Coqでは、\ ``f : A -> B -> C``\ という型の関数は\ ``A -> (B -> C)``\ 
 ::
 
     Definition filter_even_gt7 (l : list nat) : list nat :=
-       Admitted.
+      (* FILL IN HERE *) admit.
+
+    Example test_filter_even_gt7_1 :
+      filter_even_gt7 [1,2,6,9,10,3,12,8] = [10,12,8].
+     (* FILL IN HERE *) Admitted.
+
+    Example test_filter_even_gt7_2 :
+      filter_even_gt7 [5,2,6,19,129] = [].
+     (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -580,7 +628,12 @@ Coqでは、\ ``f : A -> B -> C``\ という型の関数は\ ``A -> (B -> C)``\ 
 
     Definition partition {X : Type} (test : X -> bool) (l : list X)
                          : list X * list X :=
-     Admitted.
+    (* FILL IN HERE *) admit.
+
+    Example test_partition1: partition oddb [1,2,3,4,5] = ([1,3,5], [2,4]).
+    (* FILL IN HERE *) Admitted.
+    Example test_partition2: partition (fun x => false) [5,9,0] = ([], [5,9,0]).
+    (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -631,7 +684,7 @@ Coqでは、\ ``f : A -> B -> C``\ という型の関数は\ ``A -> (B -> C)``\ 
     Theorem map_rev : forall (X Y : Type) (f : X -> Y) (l : list X),
       map f (rev l) = rev (map f l).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -647,7 +700,12 @@ Coqでは、\ ``f : A -> B -> C``\ という型の関数は\ ``A -> (B -> C)``\ 
 
     Fixpoint flat_map {X Y:Type} (f:X -> list Y) (l:list X)
                        : (list Y) :=
-       Admitted.
+      (* FILL IN HERE *) admit.
+
+    Example test_flat_map1:
+      flat_map (fun n => [n,n,n]) [1,5,4]
+      = [1, 1, 1, 5, 5, 5, 4, 4, 4].
+     (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -769,7 +827,7 @@ Coqでは、\ ``f : A -> B -> C``\ という型の関数は\ ``A -> (B -> C)``\ 
     Theorem override_example : forall (b:bool),
       (override (constfun b) 3 true) 2 = b.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -830,7 +888,7 @@ Coqでは、\ ``f : A -> B -> C``\ という型の関数は\ ``A -> (B -> C)``\ 
       beq_nat k2 k1 = false ->
       (override f k2 x2) k1 = x1.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -904,7 +962,7 @@ Coqには、この性質を証明に利用する\ ``inversion``\ というタク
          y :: l = x :: j ->
          x = y.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -932,7 +990,7 @@ Coqには、この性質を証明に利用する\ ``inversion``\ というタク
          y :: l = z :: j ->
          x = z.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -967,6 +1025,10 @@ Coqには、この性質を証明に利用する\ ``inversion``\ というタク
 
 ``beq_nat_eq``\ の、非形式的な証明を示しなさい。
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題: ★★★ (beq\_nat\_eq')
@@ -980,7 +1042,7 @@ Coqには、この性質を証明に利用する\ ``inversion``\ というタク
       beq_nat n m = true -> n = m.
     Proof.
       intros m. induction m as [| m'].
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1013,7 +1075,12 @@ Coqには、この性質を証明に利用する\ ``inversion``\ というタク
     Theorem beq_nat_0_l : forall n,
       true = beq_nat 0 n -> 0 = n.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem beq_nat_0_r : forall n,
+      true = beq_nat n 0 -> 0 = n.
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1079,7 +1146,8 @@ Coqには、この性質を証明に利用する\ ``inversion``\ というタク
          n = m.
     Proof.
       intros n. induction n as [| n'].
-         Admitted.
+
+        (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1117,12 +1185,17 @@ Coqには、この性質を証明に利用する\ ``inversion``\ というタク
     Theorem override_shadow : forall {X:Type} x1 x2 k1 k2 (f : nat->X),
       (override (override f k1 x2) k1 x1) k2 = (override f k1 x1) k2.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
 練習問題: ★★★, recommended (combine\_split)
 '''''''''''''''''''''''''''''''''''''''''''
+
+::
+
+    Admitted.
+    *)
 
 ☐
 
@@ -1135,6 +1208,10 @@ Coqには、この性質を証明に利用する\ ``inversion``\ というタク
 ヒント:``split combine l1 l2 = (l1,l2)``\ が\ ``true``\ となる\ ``l1``\ 、\ ``l2``\ の条件は何でしょう？
 
 この定理をCoqで証明しなさい（なるべく\ ``intros``\ を使うタイミングを遅らせ、帰納法の仮定を一般化させておくといいでしょう。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1183,6 +1260,12 @@ Coqには、この性質を証明に利用する\ ``inversion``\ というタク
       intros n eq. unfold sillyfun1 in eq.
        remember (beq_nat n 3) as e3.
 
+       destruct e3.
+
+         Case "e3 = true". apply beq_nat_eq in Heqe3.
+           rewrite -> Heqe3. reflexivity.
+         Case "e3 = false".
+
            remember (beq_nat n 5) as e5. destruct e5.
              SCase "e5 = true".
                apply beq_nat_eq in Heqe5.
@@ -1198,7 +1281,7 @@ Coqには、この性質を証明に利用する\ ``inversion``\ というタク
       f k1 = x1 ->
       (override f k1 x1) k2 = f k2.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1214,7 +1297,7 @@ Coqには、この性質を証明に利用する\ ``inversion``\ というタク
          filter test l = x :: lf ->
          test x = true.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1269,7 +1352,20 @@ trans\_eq with\ ``c,d``\ と書くこともできます。
          (n + p) = m ->
          (n + p) = (minustwo o).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem beq_nat_trans : forall n m p,
+      true = beq_nat n m ->
+      true = beq_nat m p ->
+      true = beq_nat n p.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem override_permute : forall {X:Type} x1 x2 k1 k2 k3 (f : nat->X),
+      false = beq_nat k2 k1 ->
+      (override (override f k2 x2) k1 x1) k3 = (override (override f k1 x1) k2 x2) k3.
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1328,7 +1424,7 @@ trans\_eq with\ ``c,d``\ と書くこともできます。
 
     Theorem fold_length_correct : forall X (l : list X),
       fold_length l = length l.
-     Admitted.
+    (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1340,9 +1436,13 @@ trans\_eq with\ ``c,d``\ と書くこともできます。
 ::
 
     Definition fold_map {X Y:Type} (f : X -> Y) (l : list X) : list Y :=
-     admit.
+    (* FILL IN HERE *) admit.
 
 ``fold_map``\ の正しさを示す定理をCoqで書き、証明しなさい
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1365,6 +1465,7 @@ trans\_eq with\ ``c,d``\ と書くこともできます。
       | d : mumble -> grumble X
       | e : X -> grumble X.
 
+FILL IN HERE
 次の式のうち、ある型\ ``X``\ について\ ``grumble X``\ の要素として正しく定義されているものはどれでしょうか。
 
 -  ``d (b a 5)``
@@ -1388,8 +1489,8 @@ trans\_eq with\ ``c,d``\ と書くこともできます。
        | x : baz -> baz
        | y : baz -> bool -> baz.
 
-型\ ``baz``\ はいくつの要素を持つことができるでしょうか？(\* FILL IN HERE
-\*)☐
+FILL IN HERE 型\ ``baz``\ はいくつの要素を持つことができるでしょうか？(\*
+FILL IN HERE \*)☐
 
 ::
 
@@ -1427,7 +1528,11 @@ trans\_eq with\ ``c,d``\ と書くこともできます。
 
 そして、\ ``existsb'``\ と\ ``existsb``\ が同じ振る舞いをすることを証明しなさい。
 
-☐
+::
+
+    (* FILL IN HERE *)
+
+FILL IN HERE ☐
 
 練習問題: ★★, optional (index\_informal)
 ''''''''''''''''''''''''''''''''''''''''

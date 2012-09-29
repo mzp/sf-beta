@@ -26,6 +26,9 @@ Coq で作れる数学的な文（命題; *proposition* ）の種類と、その
 
     Check (2 + 2 = 4).
 
+
+    Check (ble_nat 3 2 = false).
+
 証明可能な主張も証明不能な主張も、どちらも完全な命題であると言えます。しかし単に命題であるということと、証明可能であるということは別ものです！
 
 ::
@@ -86,12 +89,16 @@ Coq で作れる数学的な文（命題; *proposition* ）の種類と、その
 
     Check even.
 
-``even``\ の型\ ``nat->Prop``\ は3つの意味を持っています。(1)
+    Check (even 4).
+
+    Check (even 3).
+
+``even``\ の型\ ``nat -> Prop``\ は3つの意味を持っています。(1)
 "``even``\ は数から命題への関数である。"(2)
 "``even``\ は数\ ``n``\ でインデックスされた命題の集りである"。(3)
 "``even``\ は数の性質(*property*)である。"
 
-命題（パラーメータ化された命題も含む）はCoqにおける第一級（\ *first-class*\ ）市民です。このため、ほかの定義の中でこれらの命題を使うことができます。
+命題（パラメータ化された命題も含む）はCoqにおける第一級（\ *first-class*\ ）市民です。このため、ほかの定義の中でこれらの命題を使うことができます。
 
 ::
 
@@ -181,7 +188,7 @@ Coq で作れる数学的な文（命題; *proposition* ）の種類と、その
     Theorem gds : good_day sunday.
     Proof. apply gd_sun. Qed.
 
-コンストラクタ\ ``gd_sun``\ は、日曜日が良いという主張を正当化する"素朴（primitive）な根拠"、つまり公理です。
+コンストラクタ\ ``gd_sun``\ は、日曜日が良いという主張を正当化する"原始的（primitive）な根拠"、つまり公理です。
 
 同様に、月曜日は火曜日の前に来て、火曜日は水曜日の前に来て、...、ということを宣言する公理を、2つの日をパラメータとして取る命題\ ``day_before``\ として定義できます。
 
@@ -265,6 +272,23 @@ Coq で作れる数学的な文（命題; *proposition* ）の種類と、その
     Theorem okdw' : ok_day wednesday.
     Proof.
 
+      apply okd_before with (d2:=thursday).
+
+
+        apply okd_before with (d2:=friday).
+
+
+          apply okd_before with (d2:=saturday).
+
+
+              apply okd_gd. apply gd_sat.
+
+              apply db_sat.
+
+          apply db_fri.
+
+      apply db_thu. Qed.
+
 しかし、根本的なところでこの2つの証明方法は同じです。証明スクリプト内のコマンドを実行するときにCoqが実際にやっていることは、目的の型を持つ式を構築することと全く同じです。
 
 ::
@@ -315,7 +339,7 @@ isomorphism）と呼ばれます。これにより多くのおもしろい性質
 
     Theorem okd_before2_valid : okd_before2.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -383,7 +407,7 @@ isomorphism）と呼ばれます。これにより多くのおもしろい性質
     Theorem plus_one_r' : forall n:nat,
       n + 1 = S n.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -475,7 +499,7 @@ isomorphism）と呼ばれます。これにより多くのおもしろい性質
 ::
 
     Inductive ExSet : Type :=
-
+      (* FILL IN HERE *)
     .
 
 ☐
@@ -619,6 +643,9 @@ isomorphism）と呼ばれます。これにより多くのおもしろい性質
       Case "n = O". reflexivity.
       Case "n = S n'".
 
+        unfold P_m0r. simpl. intros n' IHn'.
+        apply IHn'.  Qed.
+
 このように名前をつける手順は通常の証明では不要です。しかし、1つ2つ試してみると、帰納法の仮定がどのようなものなのかが分かりやすくなります。\ ``forall n, P_m0r n``\ を\ ``n``\ による帰納法（\ ``induction``\ か\ ``apply nat_ind``\ を使う）によって証明しようとすると、最初のサブゴールでは\ ``P_m0r 0``\ （"``P``\ が0に対して成り立つ"）を証明しなければならず、2つめのサブゴールでは\ ``forall n', P_m0r n' -> P_m0r (S n')``\ （"``P``\ が\ ``n'``\ について成り立つならば、\ ``P``\ が\ ``S n'``\ についても成り立つ"あるいは"``P``\ が\ ``S``\ によって保存される"）を証明しなければなりません。帰納法の仮定は、2つめの推論の基礎になっています
 --``P``\ が\ ``n'``\ について成り立つことを仮定することにより、それによって\ ``P``\ が\ ``S n'``\ について成り立つことを示すことができます。
 
@@ -647,7 +674,9 @@ isomorphism）と呼ばれます。これにより多くのおもしろい性質
     Theorem four_ev' :
       ev 4.
     Proof.
-       admit.
+      (* FILL IN HERE *) Admitted.
+    Definition four_ev : ev 4 :=
+      (* FILL IN HERE *) admit.
 
 ☐
 
@@ -659,7 +688,11 @@ isomorphism）と呼ばれます。これにより多くのおもしろい性質
 ::
 
     Definition ev_plus4 : forall n, ev n -> ev (4 + n) :=
-       Admitted.
+      (* FILL IN HERE *) admit.
+    Theorem ev_plus4' : forall n,
+      ev n -> ev (4 + n).
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -673,7 +706,7 @@ isomorphism）と呼ばれます。これにより多くのおもしろい性質
     Theorem double_even : forall n,
       ev (double n).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -746,7 +779,11 @@ Coqの設計は非常に直交しているので、素朴な命題を根拠と�
 練習問題: ★ (l\_fails)
 ''''''''''''''''''''''
 
-次の証明はうまくいきません。 [[
+::
+
+    *)
+
+FILL IN HERE 次の証明はうまくいきません。 [[
 
 Theorem l : forall n,ev n.Proof.intros n. induction n.Case "O". simpl.
 apply ev\_0.Case "S"....]]理由を簡潔に説明しない。
@@ -765,7 +802,7 @@ apply ev\_0.Case "S"....]]理由を簡潔に説明しない。
     Theorem ev_sum : forall n m,
        ev n -> ev m -> ev (n+m).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -778,6 +815,8 @@ apply ev\_0.Case "S"....]]理由を簡潔に説明しない。
     Proof.
       intros n E.
       destruct E as [| n' E'].
+
+    Admitted.
 
 しかし、これはうまくいきません。
 例えば、最初のサブゴールにおいて、\ ``n``\ が\ ``0``\ であるという情報が失われてしまいます。ここで使うべきは、\ ``inversion``\ です。
@@ -808,6 +847,7 @@ apply ev\_0.Case "S"....]]理由を簡潔に説明しない。
     Theorem SSSSev_even : forall n,
       ev (S (S (S (S n)))) -> ev n.
     Proof.
+      (* FILL IN HERE *) Admitted.
 
 ``inversion``\ タクティックは、仮定が矛盾していることを示し、ゴールを達成するためにも使えます。
 
@@ -816,7 +856,7 @@ apply ev\_0.Case "S"....]]理由を簡潔に説明しない。
     Theorem even5_nonsense :
       ev 5 -> 2 + 2 = 9.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -841,7 +881,7 @@ apply ev\_0.Case "S"....]]理由を簡潔に説明しない。
     Theorem ev_ev_even : forall n m,
       ev (n+m) -> ev n -> ev m.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -856,7 +896,7 @@ apply ev\_0.Case "S"....]]理由を簡潔に説明しない。
     Theorem ev_plus_plus : forall n m p,
       ev (n+m) -> ev (n+p) -> ev (m+p).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -912,7 +952,11 @@ MyPropに関する便利な2つの事実があります。証明はあなたの�
 
     Theorem MyProp_0 : MyProp 0.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem MyProp_plustwo : forall n:nat, MyProp n -> MyProp (S (S n)).
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -950,12 +994,16 @@ MyPropに関する便利な2つの事実があります。証明はあなたの�
     Theorem ev_MyProp : forall n:nat,
       MyProp n -> ev n.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
 練習問題: ★★★, optional (ev\_MyProp\_informal)
 ''''''''''''''''''''''''''''''''''''''''''''''
+
+::
+
+    [] *)
 
 ``ev_MyProp``\ の 形式的な証明に対応する非形式的な証明を書きなさい。
 
@@ -1280,6 +1328,10 @@ Coq
 
 ``plus_assoc'``\ と\ ``plus_comm'``\ を、その証明とともに上の\ ``mult_0_r''``\ と同じスタイルになるよう書き直しなさい。このことは、それぞれの定理が帰納法で証明された命題に明確な定義を与え、この定義された命題から定理と証明を示しています。
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 冒険心を満足させるために、もう少し脱線してみましょう。\ ``Definition``\ でパラメータ化された命題を定義できるなら、\ ``Fixpoint``\ でも定義できていいのではないでしょうか？もちろんできます！しかし、この種の「再帰的なパラメータ化」は、日常的に使われる数学の分野と必ずしも調和するわけではありません。そんなわけで次の練習問題は、例としてはいささか不自然かもしれません。
@@ -1288,6 +1340,14 @@ Coq
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ``true_upto_n_example``\ を満たすような再帰関数\ ``true_upto_n__true_everywhere``\ を定義しなさい。
+
+::
+
+    Example true_upto_n_example :
+        (true_upto_n__true_everywhere 3 (fun n => even n))
+      = (even 3 -> even 2 -> even 1 -> forall m : nat, even m).
+    Proof. reflexivity.  Qed.
+    *)
 
 ☐
 
@@ -1386,7 +1446,7 @@ Coqが根拠の式\ ``e``\ を、命題\ ``P``\ のパラメータから取り�
       MyProp n -> ev n.
     Proof.
       apply MyProp_ind.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1394,6 +1454,10 @@ Coqが根拠の式\ ``e``\ を、命題\ ``P``\ のパラメータから取り�
 ''''''''''''''''''''''''''''''''''''''''
 
 もう一度\ ``MyProp_ev``\ と\ ``ev_MyProp``\ を証明しなさい。ただし今度は、明確な証明オブジェクトを手作業で構築（上の\ ``ev_plus4``\ でやったように）することで証明しなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1414,6 +1478,10 @@ Coqが根拠の式\ ``e``\ を、命題\ ``P``\ のパラメータから取り�
                 p t1 n1 -> p t2 n2 -> p (node _ t1 t2) (n1 + n2)
        | c3 : forall t n, p t n -> p t (S n).
 
+
+    *)
+
+FILL IN HERE
 これについて、どのような時に\ ``p t n``\ が証明可能であるか、その条件をを自然言語で説明しなさい。
 
 (\* FILL IN HERE \*)
@@ -1455,6 +1523,8 @@ palindrome（回文）は、最初から読んでも逆から読んでも同じ�
 
           forall l, pal l -> l = rev l.
 
+   (\* FILL IN HERE \*)
+
 ☐
 
 練習問題: ★★★★★, optional (palindrome\_converse)
@@ -1465,6 +1535,8 @@ palindrome（回文）は、最初から読んでも逆から読んでも同じ�
 ::
 
          forall l, l = rev l -> pal l.
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1499,6 +1571,8 @@ palindrome（回文）は、最初から読んでも逆から読んでも同じ�
 -  サブシーケンスである、という関係が「反射的」であることを証明しなさい。つまり、どのようなリストも、それ自身のサブシーケンスであるということです。
 -  任意のリスト\ ``l1``\ 、\ ``l2``\ 、\ ``l3``\ について、もし\ ``l1``\ が\ ``l2``\ のサブシーケンスならば、\ ``l1``\ は\ ``l2 ++ l3``\ のサブシーケンスでもある、ということを証明しなさい。.
 -  （これは少し難しいですので、任意とします）サブシーケンスという関係は推移的である、つまり、\ ``l1``\ が\ ``l2``\ のサブシーケンスであり、\ ``l2``\ が\ ``l3``\ のサブシーケンスであるなら、\ ``l1``\ は\ ``l3``\ のサブシーケンスである、というような関係であることを証明しなさい。（ヒント：何について帰納法を適用するか、よくよく注意して下さい。）
+
+   (\* FILL IN HERE \*)
 
 ☐
 

@@ -1,6 +1,10 @@
 ImpList\_J: Imp のリスト拡張
 ============================
 
+::
+
+    Require Export SfLib_J.
+
 リストを持つ Imp プログラム
 ---------------------------
 
@@ -110,6 +114,44 @@ Impには静的型システムがありません。そのため、プログラ�
       | AMinus : aexp -> aexp -> aexp
       | AMult : aexp -> aexp -> aexp
 
+      | AHead : aexp -> aexp
+      | ATail : aexp -> aexp
+      | ACons : aexp -> aexp -> aexp
+      | ANil  : aexp.
+
+    Tactic Notation "aexp_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "ANum" | Case_aux c "AId" | Case_aux c "APlus"
+      | Case_aux c "AMinus" | Case_aux c "AMult"
+      | Case_aux c "AHead" | Case_aux c "ATail"
+      | Case_aux c "ACons" | Case_aux c "ANil" ].
+
+    Definition tail (l : list nat) :=
+      match l with
+      | x::xs => xs
+      | [] => []
+      end.
+
+    Definition head (l : list nat) :=
+      match l with
+      | x::xs => x
+      | [] => 0
+      end.
+
+    Fixpoint aeval (st : state) (e : aexp) : val :=
+      match e with
+      | ANum n => VNat n
+      | AId i => st i
+      | APlus a1 a2   => VNat (asnat (aeval st a1) + asnat (aeval st a2))
+      | AMinus a1 a2  => VNat (asnat (aeval st a1) - asnat (aeval st a2))
+      | AMult a1 a2   => VNat (asnat (aeval st a1) * asnat (aeval st a2))
+
+      | ATail a => VList (tail (aslist (aeval st a)))
+      | AHead a => VNat (head (aslist (aeval st a)))
+      | ACons a1 a2 => VList (asnat (aeval st a1) :: aslist (aeval st a2))
+      | ANil => VList []
+      end.
+
 ``bexp``\ を拡張して、リストが空かどうかをテストする操作を追加します。また、\ ``beval``\ をそれに合わせて変更します。
 
 ::
@@ -121,6 +163,29 @@ Impには静的型システムがありません。そのため、プログラ�
       | BLe : aexp -> aexp -> bexp
       | BNot : bexp -> bexp
       | BAnd : bexp -> bexp -> bexp
+
+      | BIsCons : aexp -> bexp.
+
+    Tactic Notation "bexp_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "BTrue" | Case_aux c "BFalse" | Case_aux c "BEq"
+      | Case_aux c "BLe" | Case_aux c "BNot" | Case_aux c "BAnd"
+      | Case_aux c "BIsCons" ].
+
+    Fixpoint beval (st : state) (e : bexp) : bool :=
+      match e with
+      | BTrue       => true
+      | BFalse      => false
+      | BEq a1 a2   => beq_nat (asnat (aeval st a1)) (asnat (aeval st a2))
+      | BLe a1 a2   => ble_nat (asnat (aeval st a1)) (asnat (aeval st a2))
+      | BNot b1     => negb (beval st b1)
+      | BAnd b1 b2  => andb (beval st b1) (beval st b2)
+
+      | BIsCons a    => match aslist (aeval st a) with
+                         | _::_ => true
+                         | [] => false
+                       end
+      end.
 
 定義の繰り返し
 ~~~~~~~~~~~~~~

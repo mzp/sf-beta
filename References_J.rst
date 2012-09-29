@@ -1,6 +1,10 @@
 References\_J: 変更可能な参照の型付け
 =====================================
 
+::
+
+    Require Export Smallstep_J.
+
 ここまでは、いろいろな「純粋な」(*pure*)言語機能を考えてきました。関数抽象、数値やブール値などの基本型、レコードやバリアントのような構造型などです。これらの機能はほとんどのプログラミング言語のバックボーンを構成しています。その言語の中にはHaskellのような純粋な関数型言語、MLのような「ほとんど関数型の」("mostly
 functional")言語、Cのような命令型言語、Javaのようなオブジェクト指向言語を含みます。
 
@@ -72,6 +76,21 @@ types*)を追加します。
               | l                  location
 
     Inductive tm  : Type :=
+
+      | tm_var    : id -> tm
+      | tm_app    : tm -> tm -> tm
+      | tm_abs    : id -> ty -> tm -> tm
+      | tm_nat    : nat -> tm
+      | tm_succ   : tm -> tm
+      | tm_pred   : tm -> tm
+      | tm_mult   : tm -> tm -> tm
+      | tm_if0    : tm -> tm -> tm -> tm
+
+      | tm_unit   : tm
+      | tm_ref    : tm -> tm
+      | tm_deref  : tm -> tm
+      | tm_assign : tm -> tm -> tm
+      | tm_loc    : nat -> tm.
 
 直観的には...
 
@@ -294,6 +313,10 @@ state)としてはたらきます。例えば、参照セルと、その内容�
 
 最初の2つの\ ``let``\ が完了し3つ目が始まろうとする時点の記憶の中身を(紙の上に)描きなさい。
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 参照と合成型
@@ -347,6 +370,10 @@ state)としてはたらきます。例えば、参照セルと、その内容�
 
 これは前の定義と同じように振る舞うでしょうか？
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 null参照
@@ -373,6 +400,10 @@ reference*)問題です。数値を持つセルをアロケートし、何かの
 '''''''''''
 
 このことがどのように型安全性の破壊につながるのか示しなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -429,6 +460,25 @@ IMPの状態で使ったのと同じ関数表現を再利用することもで�
       length (snoc l x) = S (length l).
     Proof.
       induction l; intros; [ auto | simpl; rewrite IHl; auto ]. Qed.
+
+
+
+    Lemma nth_lt_snoc : forall A (l:list A) x d n,
+      n < length l ->
+      nth n l d = nth n (snoc l x) d.
+    Proof.
+      induction l as [|a l']; intros; try solve by inversion.
+      Case "l = a :: l'".
+        destruct n; auto.
+        simpl. apply IHl'.
+        simpl in H. apply lt_S_n in H. assumption.
+    Qed.
+
+    Lemma nth_eq_snoc : forall A (l:list A) x d,
+      nth (length l) (snoc l x) d = x.
+    Proof.
+      induction l; intros; [ auto | simpl; rewrite IHl; auto ].
+    Qed.
 
 記憶を更新するために、\ ``replace``\ 関数を使います。この関数は特定のインデックスのセルの中身を置き換えます。
 
@@ -876,6 +926,10 @@ typed*)とは、\ ``st``\ のそれぞれの場所\ ``l``\ の項が\ ``ST``\ �
 
 ``ST1 |- st``\ と\ ``ST2 |- st``\ の両者を成立させる記憶\ ``st``\ および相異なる記憶型付け\ ``ST1``\ と\ ``ST2``\ を見つけられますか？
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 ここまで来ると求められる保存性に近いものを主張することができます：
@@ -1318,6 +1372,11 @@ typed*)とは、\ ``st``\ のそれぞれの場所\ ``l``\ の項が\ ``ST``\ �
 練習問題: ★★★ (preservation\_informal)
 ''''''''''''''''''''''''''''''''''''''
 
+::
+
+    [] *)
+
+ここを埋めなさい。
 保存補題の非形式的証明を注意深く記述しなさい。\ ``T_App``\ 、\ ``T_Deref``\ 、\ ``T_Assign``\ 、\ ``T_Ref``\ の場合に特に集中しなさい。
 
 ☐
@@ -1532,6 +1591,11 @@ typed*)とは、\ ``st``\ のそれぞれの場所\ ``l``\ の項が\ ``ST``\ �
 ::
 
     Definition factorial : tm :=
+      (* FILL IN HERE *) admit.
+
+    Lemma factorial_type : has_type empty [] factorial (ty_arrow ty_Nat ty_Nat).
+    Proof with eauto.
+      (* FILL IN HERE *) Admitted.
 
 もし定義が正しいのならば、以下の例のコメントを外してみなさい。証明は\ ``reduce``\ タクティックを使って完全自動で行われるはずです。
 

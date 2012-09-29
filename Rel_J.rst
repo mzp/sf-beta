@@ -74,6 +74,10 @@ function*)です。条件とは、すべての\ ``x``\ に対して、\ ``R x y`
 Logic\_J.v
 に定義された\ ``total_relation``\ が部分関数ではないことを示しなさい。
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題:★★, optional
@@ -81,6 +85,10 @@ Logic\_J.v
 
 Logic\_J.v
 に定義された\ ``empty_relation``\ が部分関数ではないことを示しなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -133,7 +141,11 @@ Logic\_J.v
     Theorem lt_trans' :
       transitive lt.
     Proof.
-       Admitted.
+
+      unfold lt. unfold transitive.
+      intros n m o Hnm Hmo.
+      induction Hmo as [| m' Hm'o].
+        (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -150,7 +162,7 @@ Logic\_J.v
       unfold lt. unfold transitive.
       intros n m o Hnm Hmo.
       induction o as [| o'].
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -172,9 +184,9 @@ Logic\_J.v
     Theorem le_S_n : forall n m,
       (S n <= S m) -> (n <= m).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
-☐
+FILL IN HERE ☐
 
 練習問題:★★, optional(le\_Sn\_n\_inf)
 '''''''''''''''''''''''''''''''''''''
@@ -195,7 +207,7 @@ Logic\_J.v
     Theorem le_Sn_n : forall n,
       ~ (S n <= n).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -217,7 +229,7 @@ Logic\_J.v
     Theorem le_not_symmetric :
       ~ (symmetric le).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -238,7 +250,7 @@ Logic\_J.v
     Theorem le_antisymmetric :
       antisymmetric le.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -252,7 +264,7 @@ Logic\_J.v
       m <= S p ->
       n <= p.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -381,7 +393,7 @@ order*)であるとは、その関係が、反射的、反対称的、かつ推�
           refl_step_closure R y z ->
           refl_step_closure R x z.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -396,6 +408,6 @@ order*)であるとは、その関係が、反射的、反対称的、かつ推�
              forall (X:Type) (R: relation X) (x y : X),
       clos_refl_trans R x y <-> refl_step_closure R x y.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐

@@ -1,6 +1,11 @@
 Smallstep\_J: スモールステップ操作的意味論
 ==========================================
 
+::
+
+    Require Export Imp_J.
+    Require Import Relations.
+
 ここまで見てきた評価器(例えば\ ``aexp``\ のもの、\ ``bexp``\ のもの、コマンドのもの)はビッグステップスタイルで記述されてきました。つまり、与えられた式がどのように最終的な値になるか(またはコマンドと記憶状態(store)の組がどのように最終記憶状態になるか)を特定していました。「すべてが1つの大きなステップ」で行われました。
 
 このスタイルは単純で多くの目的のために自然な方法です(実際、Gilles Kahn
@@ -174,7 +179,20 @@ function)ではなく部分関数(partial function)にすることができま�
 
 ::
 
-    Admitted.
+    Example test_step_2 :
+          tm_plus
+            (tm_const 0)
+            (tm_plus
+              (tm_const 2)
+              (tm_plus (tm_const 0) (tm_const 3)))
+          ==>
+          tm_plus
+            (tm_const 0)
+            (tm_plus
+              (tm_const 2)
+              (tm_const (plus 0 3))).
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -264,7 +282,16 @@ function)ではなく部分関数(partial function)にすることができま�
             t1 ==> t1' ->
             tm_plus t1 t2 ==> tm_plus t1' t2
       | ST_Plus2 : forall v1 t2 t2',
-            value v1 ->
+            value v1 ->                     
+            t2 ==> t2' ->
+            tm_plus v1 t2 ==> tm_plus v1 t2'
+
+      where " t '==>' t' " := (step t t').
+
+    Tactic Notation "step_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "ST_PlusConstConst"
+      | Case_aux c "ST_Plus1" | Case_aux c "ST_Plus2" ].
 
 練習問題: ★★★, recommended (redo\_determinacy)
 ''''''''''''''''''''''''''''''''''''''''''''''
@@ -288,7 +315,7 @@ function)ではなく部分関数(partial function)にすることができま�
     Theorem step_deterministic :
       partial_function step.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -356,7 +383,19 @@ form*)と呼びます。
 
     Lemma nf_is_value : forall t,
       normal_form step t -> value t.
+    Proof. 
+      unfold normal_form. intros t H.
+      assert (G : value t \/ exists t', t ==> t').
+        SCase "Proof of assertion". apply strong_progress.
+      inversion G.
+        SCase "l". apply H0.
+        SCase "r". apply ex_falso_quodlibet. apply H. assumption.  Qed.
+
+    Corollary nf_same_as_value : forall t,
+      normal_form step t <-> value t.
     Proof.
+      split. apply nf_is_value. apply value_is_nf.
+    Qed.
 
 なぜこれが興味深いのでしょう？ 2つの理由があります:
 
@@ -372,6 +411,27 @@ form*)と呼びます。
 
     Module Temp1.
 
+
+    Inductive value : tm -> Prop :=
+    | v_const : forall n, value (tm_const n)
+    | v_funny : forall t1 n2,                       
+                  value (tm_plus t1 (tm_const n2)).
+
+    Reserved Notation " t '==>' t' " (at level 40).
+
+    Inductive step : tm -> tm -> Prop :=
+      | ST_PlusConstConst : forall n1 n2,
+          tm_plus (tm_const n1) (tm_const n2) ==> tm_const (plus n1 n2)
+      | ST_Plus1 : forall t1 t1' t2,
+          t1 ==> t1' ->
+          tm_plus t1 t2 ==> tm_plus t1' t2
+      | ST_Plus2 : forall v1 t2 t2',
+          value v1 ->
+          t2 ==> t2' ->
+          tm_plus v1 t2 ==> tm_plus v1 t2'
+
+      where " t '==>' t' " := (step t t').
+
 練習問題: ★★★, recommended (value\_not\_same\_as\_normal\_form)
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -380,7 +440,7 @@ form*)と呼びます。
     Lemma value_not_same_as_normal_form :
       exists t, value t /\ ~ normal_form step t.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -400,7 +460,19 @@ form*)と呼びます。
     Reserved Notation " t '==>' t' " (at level 40).
 
     Inductive step : tm -> tm -> Prop :=
-      | ST_Funny : forall n,
+      | ST_Funny : forall n,                         
+          tm_const n ==> tm_plus (tm_const n) (tm_const 0)
+      | ST_PlusConstConst : forall n1 n2,
+          tm_plus (tm_const n1) (tm_const n2) ==> tm_const (plus n1 n2)
+      | ST_Plus1 : forall t1 t1' t2,
+          t1 ==> t1' ->
+          tm_plus t1 t2 ==> tm_plus t1' t2
+      | ST_Plus2 : forall v1 t2 t2',
+          value v1 ->
+          t2 ==> t2' ->
+          tm_plus v1 t2 ==> tm_plus v1 t2'
+
+      where " t '==>' t' " := (step t t').
 
 練習問題: ★★★, recommended (value\_not\_same\_as\_normal\_form)
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -410,7 +482,7 @@ form*)と呼びます。
     Lemma value_not_same_as_normal_form :
       exists t, value t /\ ~ normal_form step t.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -448,7 +520,7 @@ form*)と呼びます。
     Lemma value_not_same_as_normal_form :
       exists t, ~ value t /\ normal_form step t.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -500,6 +572,31 @@ true と false、および条件式です...
     Definition bool_step_prop1 :=
       tm_false ==> tm_false.
 
+    (* FILL IN HERE *)
+
+    Definition bool_step_prop2 :=
+         tm_if
+           tm_true
+           (tm_if tm_true tm_true tm_true)
+           (tm_if tm_false tm_false tm_false)
+      ==>
+         tm_true.
+
+    (* FILL IN HERE *)
+
+    Definition bool_step_prop3 :=
+         tm_if
+           (tm_if tm_true tm_true tm_true)
+           (tm_if tm_true tm_true tm_true)
+           tm_false
+       ==>
+         tm_if
+           tm_true
+           (tm_if tm_true tm_true tm_true)
+           tm_false.
+
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題: ★★★, recommended (progress\_bool)
@@ -512,7 +609,7 @@ true と false、および条件式です...
     Theorem strong_progress : forall t,
       value t \/ (exists t', t ==> t').
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -524,7 +621,7 @@ true と false、および条件式です...
     Theorem step_deterministic :
       partial_function step.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -560,7 +657,7 @@ true と false、および条件式です...
       | ST_If : forall t1 t1' t2 t3,
           t1 ==> t1' ->
           tm_if t1 t2 t3 ==> tm_if t1' t2 t3
-
+    (* FILL IN HERE *)
 
       where " t '==>' t' " := (step t t').
 
@@ -579,7 +676,7 @@ true と false、および条件式です...
     Example bool_step_prop4_holds :
       bool_step_prop4.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -592,9 +689,17 @@ true と false、および条件式です...
    と書き、簡潔に(1文で)その答えを説明しなさい。 Optional: Coq
    でその答えが正しいことを証明しなさい。
 
+   (\* FILL IN HERE \*)
+
 -  強進行定理は成立するでしょうか？ yes または no
    と書き、簡潔に(1文で)その答えを説明しなさい。 Optional: Coq
    でその答えが正しいことを証明しなさい。
+
+   (\* FILL IN HERE \*)
+
+   \*)
+
+FILL IN HERE
 
 -  一般に、オリジナルのステップ関係から1つ以上のコンストラクタを取り除いて、
    強進行性を持たなくする方法はあるでしょうか？yes または no
@@ -682,7 +787,7 @@ reduction*)関係\ ``==>*``\ は1ステップ関係\ ``==>``\ の反射推移閉
     Lemma test_stepmany_2:
       tm_const 3 ==>* tm_const 3.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -696,7 +801,7 @@ reduction*)関係\ ``==>*``\ は1ステップ関係\ ``==>``\ の反射推移閉
        ==>*
           tm_plus (tm_const 0) (tm_const 3).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -716,7 +821,7 @@ reduction*)関係\ ``==>*``\ は1ステップ関係\ ``==>``\ の反射推移閉
             (tm_const 0)
             (tm_const (plus 2 (plus 0 3))).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -747,7 +852,8 @@ of\ ``t``"と定冠詞を使ってよいことと記述されています。)
       unfold partial_function. unfold normal_form_of.  intros x y1 y2 P1 P2.
       destruct P1 as [P11 P12]. destruct P2 as [P21 P22].
       generalize dependent y2.
-       Admitted.
+
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -785,7 +891,7 @@ of\ ``t``"と定冠詞を使ってよいことと記述されています。)
          t2 ==>* t2' ->
          tm_plus t1 t2 ==>* tm_plus t1 t2'.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -803,6 +909,28 @@ of\ ``t``"と定冠詞を使ってよいことと記述されています。)
    Theorem step\_normalizing : normalizing step. Proof. unfold
    normalizing. tm\_cases (induction t) Case. Case "tm\_const". exists
    (tm\_const n). split. SCase "l". apply rsc\_refl. SCase "r".
+
+   ::
+
+           rewrite nf_same_as_value. apply v_const.
+       Case "tm_plus".
+         destruct IHt1 as [t1' H1]. destruct IHt2 as [t2' H2].
+         destruct H1 as [H11 H12]. destruct H2 as [H21 H22].
+         rewrite nf_same_as_value in H12. rewrite nf_same_as_value in H22.
+         inversion H12 as [n1]. inversion H22 as [n2].
+         rewrite <- H in H11.
+         rewrite <- H0 in H21.
+         exists (tm_const (plus n1 n2)).
+         split.
+           SCase "l".
+             apply rsc_trans with (tm_plus (tm_const n1) t2).
+             apply stepmany_congr_1. apply H11.
+             apply rsc_trans with
+                (tm_plus (tm_const n1) (tm_const n2)).
+             apply stepmany_congr_2. apply v_const. apply H21.
+             apply rsc_R. apply ST_PlusConstConst.
+           SCase "r".
+             rewrite nf_same_as_value. apply v_const.  Qed.
 
 ビッグステップ簡約とスモールステップ簡約の同値性
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -828,16 +956,21 @@ of\ ``t``"と定冠詞を使ってよいことと記述されています。)
     Theorem eval__stepmany : forall t v,
       eval t v -> t ==>* v.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
 練習問題: ★★★ (eval\_\_stepmany\_inf)
 '''''''''''''''''''''''''''''''''''''
 
-eval\_\_stepmany の証明の非形式版を記述しなさい。
+::
 
-☐
+    []
+    *)
+
+ここを埋めなさい eval\_\_stepmany の証明の非形式版を記述しなさい。
+
+(\* ここを埋めなさい \*)☐
 
 練習問題: ★★★ (step\_\_eval)
 ''''''''''''''''''''''''''''
@@ -849,7 +982,7 @@ eval\_\_stepmany の証明の非形式版を記述しなさい。
          t' || v ->
          t || v.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -861,6 +994,13 @@ eval\_\_stepmany の証明の非形式版を記述しなさい。
       intros t v Hnorm.
       unfold normal_form_of in Hnorm.
       inversion Hnorm as [Hs Hnf]; clear Hnorm.
+
+      rewrite nf_same_as_value in Hnf. inversion Hnf. clear Hnf.
+      rsc_cases (induction Hs) Case; subst.
+      Case "rsc_refl".
+        apply E_Const.
+      Case "rsc_step".
+        eapply step__eval. eassumption. apply IHHs. reflexivity.  Qed.
 
 全部まとめることで、\ ``v``\ が\ ``t``\ の正規形であるのは、\ ``t``\ が\ ``v``\ に評価されるのと同値である、とはっきりと言うことができます。
 
@@ -937,6 +1077,10 @@ eval\_\_stepmany の証明の非形式版を記述しなさい。
 -  すべての項が値であるか、1ステップ進むことができるかを主張する強進行補題。
 
 結合した言語について、これらの性質を証明、または反証しなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1082,6 +1226,64 @@ eval\_\_stepmany の証明の非形式版を記述しなさい。
       | CIf : bexp -> com -> com -> com
       | CWhile : bexp -> com -> com
 
+      | CPar : com -> com -> com.
+
+    Tactic Notation "com_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "SKIP" | Case_aux c "::=" | Case_aux c ";"
+      | Case_aux c "IFB" | Case_aux c "WHILE" | Case_aux c "PAR" ].
+
+    Notation "'SKIP'" :=
+      CSkip.
+    Notation "l '::=' a" :=
+      (CAss l a) (at level 60).
+    Notation "c1 ; c2" :=
+      (CSeq c1 c2) (at level 80, right associativity).
+    Notation "'WHILE' b 'DO' c 'END'" :=
+      (CWhile b c) (at level 80, right associativity).
+    Notation "'IFB' e1 'THEN' e2 'ELSE' e3 'FI'" :=
+      (CIf e1 e2 e3) (at level 80, right associativity).
+    Notation "'PAR' c1 'WITH' c2 'END'" :=
+      (CPar c1 c2) (at level 80, right associativity).
+
+    Inductive cstep : (com * state)  -> (com * state) -> Prop :=
+      | CS_AssStep : forall st i a a',
+        a / st ==>a a' ->
+        (i ::= a) / st ==> (i ::= a') / st
+      | CS_Ass : forall st i n,
+        (i ::= (ANum n)) / st ==> SKIP / (update st i n)
+      | CS_SeqStep : forall st c1 c1' st' c2,
+        c1 / st ==> c1' / st' ->
+        (c1 ; c2) / st ==> (c1' ; c2) / st'
+      | CS_SeqFinish : forall st c2,
+        (SKIP ; c2) / st ==> c2 / st
+      | CS_IfTrue : forall st c1 c2,
+        (IFB BTrue THEN c1 ELSE c2 FI) / st ==> c1 / st
+      | CS_IfFalse : forall st c1 c2,
+        (IFB BFalse THEN c1 ELSE c2 FI) / st ==> c2 / st
+      | CS_IfStep : forall st b b' c1 c2,
+        b /st ==>b b' ->
+        (IFB b THEN c1 ELSE c2 FI) / st ==> (IFB b' THEN c1 ELSE c2 FI) / st
+      | CS_While : forall st b c1,
+        (WHILE b DO c1 END) / st ==>
+                 (IFB b THEN (c1; (WHILE b DO c1 END)) ELSE SKIP FI) / st
+
+      | CS_Par1 : forall st c1 c1' c2 st',
+        c1 / st ==> c1' / st' ->
+        (PAR c1 WITH c2 END) / st ==> (PAR c1' WITH c2 END) / st'
+      | CS_Par2 : forall st c1 c2 c2' st',
+        c2 / st ==> c2' / st' ->
+        (PAR c1 WITH c2 END) / st ==> (PAR c1 WITH c2' END) / st'
+      | CS_ParDone : forall st,
+        (PAR SKIP WITH SKIP END) / st ==> SKIP / st
+      where " t '/' st '==>' t' '/' st' " := (cstep (t,st) (t',st')).
+
+    Definition cstepmany := refl_step_closure cstep.
+
+    Notation " t '/' st '==>*' t' '/' st' " :=
+       (refl_step_closure cstep  (t,st) (t',st'))
+       (at level 40, st at level 39, t' at level 39).
+
 この言語のいろいろな興味深い性質の中でも格別なものは、次のプログラムが、変数\ ``X``\ にどのような値を入れても停止するという事実です...
 
 ::
@@ -1178,6 +1380,7 @@ eval\_\_stepmany の証明の非形式版を記述しなさい。
       st X = n /\ st Y = 0 ->
       par_loop / st ==>* par_loop / (update st X (S n)).
     Proof.
+      (* FILL IN HERE *) Admitted.
 
 練習問題: ★★★, optional
 '''''''''''''''''''''''
@@ -1189,6 +1392,7 @@ eval\_\_stepmany の証明の非形式版を記述しなさい。
       exists st',
         par_loop / st ==>*  par_loop / st' /\ st' X = n /\ st' Y = 0.
     Proof.
+      (* FILL IN HERE *) Admitted.
 
 ... 上のループは\ ``X``\ がどんな値をとっても抜け出せます。
 

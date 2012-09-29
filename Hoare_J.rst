@@ -1,6 +1,20 @@
 Hoare\_J: ホーア論理
 ====================
 
+::
+
+    /\ verification_conditions P' c
+       His full development (based on an old version of our formalized
+       decorated programs, unfortunately), can be found in the file
+       /underconstruction/PilkiewiczFormalizedDecorated.v *)
+
+                             /\ verification_conditions P' c
+       彼の完全版(残念ながら、我々の修飾付きプログラムの古いバージョンをベースにしている)は
+       以下のファイルにある。
+       /underconstruction/PilkiewiczFormalizedDecorated.v *)
+
+    Require Export ImpList_J.
+
 コースの最初のパートで用意した数学的道具立てを、小さなプログラミング言語
 Imp の理論の学習に適用し始めています。
 
@@ -425,11 +439,20 @@ Coq で直接形式化してみることもできます。例えば次のよう�
 
 ...を、形式的記述に直し、\ ``hoare_asgn_eq``\ を使って証明しなさい。
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題: ★★★ (hoarestate2)
 '''''''''''''''''''''''''''
 
+::
+
+    *)
+
+FILL IN HERE
 代入規則は、最初に見たとき、ほとんどの人が後向きの規則であるように感じます。もし今でも後向きに見えるならば、前向きバージョンの規則を考えてみるのも良いかもしれません。次のものは自然に見えます:
 
 ::
@@ -453,7 +476,7 @@ Coq で直接形式化してみることもできます。例えば次のよう�
       {{P}} (V ::= a) {{Q}} ->
       forall st, P st -> assn_sub V a Q st.
     Proof.
-     Admitted.
+    (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -573,7 +596,8 @@ Coq で直接形式化してみることもできます。例えば次のよう�
       {{fun st => asnat (st X) = 1}}.
     Proof.
       eapply hoare_consequence_pre.
-      apply hoare_asgn_eq. reflexivity.
+      apply hoare_asgn_eq. reflexivity. 
+      intros st H. reflexivity.  Qed.
 
 一般に、\ ``eapply H``\ タクティックは\ ``apply H``\ とほぼ同様にはたらきますが、次の点が違います。\ ``H``\ の結論部とゴールとの単一化では\ ``H``\ の前提部に現れる変数のすべてが具体化されなかった場合、\ ``apply H``\ は失敗しますが、\ ``eapply H``\ は残った変数を存在変数(*existential
 variables*\ 、\ ``?nnn``\ と記述される)に置換します。存在変数は、証明の以降の部分で(さらなる単一化により)決定される式が入る場所を示すものです。
@@ -661,7 +685,7 @@ Skip
       {{fun st => True}} (X ::= (ANum 1); Y ::= (ANum 2))
       {{fun st => asnat (st X) = 1 /\ asnat (st Y) = 2}}.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -675,6 +699,8 @@ Skip
 
           {{X <= Y}} c {{Y <= X}}
 
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題: ★★★, optional (hoarestate1)
@@ -687,6 +713,8 @@ Skip
           forall (a : aexp) (n : nat),
              {{fun st => aeval st a = n}} (X ::= (ANum 3); Y ::= a)
              {{fun st => asnat (st Y) = n}}.
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -785,6 +813,18 @@ Skip
         {{fun st => asnat (st X) <= asnat (st Y)}}.
     Proof.
 
+      apply hoare_if.
+      Case "Then".
+        eapply hoare_consequence_pre. apply hoare_asgn.
+        unfold bassn, assn_sub, update. simpl. intros.
+        inversion H.
+           symmetry in H1; apply beq_nat_eq in H1.
+           rewrite H1.  omega.
+      Case "Else".
+        eapply hoare_consequence_pre. apply hoare_asgn.
+        unfold assn_sub, update; simpl; intros. omega.
+    Qed.
+
 ループ
 ^^^^^^
 
@@ -835,6 +875,37 @@ Skip
       {{P}} WHILE b DO c END {{fun st => P st /\ ~ (bassn b st)}}.
     Proof.
       intros P b c Hhoare st st' He HP.
+
+
+      remember (WHILE b DO c END) as wcom.
+      ceval_cases (induction He) Case; try (inversion Heqwcom); subst.
+
+      Case "E_WhileEnd".
+        split. assumption. apply bexp_eval_false.  assumption.
+
+      Case "E_WhileLoop".
+        apply IHHe2.  reflexivity.
+        apply (Hhoare st st'); try assumption.
+          split. assumption. apply bexp_eval_true. assumption.  Qed.
+
+    Example while_example :
+        {{fun st => asnat (st X) <= 3}}
+      WHILE (BLe (AId X) (ANum 2))
+      DO X ::= APlus (AId X) (ANum 1) END
+        {{fun st => asnat (st X) = 3}}.
+    Proof.
+      eapply hoare_consequence_post.
+      apply hoare_while.
+      eapply hoare_consequence_pre.
+      apply hoare_asgn.
+      unfold bassn,  assn_sub. intros.  rewrite update_eq. simpl.
+         inversion H as [_ H0].  simpl in H0. apply ble_nat_true in H0.
+         omega.
+      unfold bassn. intros. inversion H as [Hle Hb]. simpl in Hb.
+         remember (ble_nat (asnat (st X)) 2) as le.  destruct le.
+         apply ex_falso_quodlibet. apply Hb; reflexivity.
+         symmetry in Heqle. apply ble_nat_false in Heqle. omega.
+    Qed.
 
 while規則を使うと、次のホーアの三つ組も証明できます。これは最初は驚くでしょう...
 
@@ -952,6 +1023,16 @@ correctness)についてのホーア規則を与えることも可能です。�
           ceval st c1 st' ->
           ceval st' (WHILE b1 DO c1 END) st'' ->
           ceval st (WHILE b1 DO c1 END) st''
+    (* FILL IN HERE *)
+    .
+
+    Tactic Notation "ceval_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "E_Skip" | Case_aux c "E_Ass" | Case_aux c "E_Seq"
+      | Case_aux c "E_IfTrue" | Case_aux c "E_IfFalse"
+      | Case_aux c "E_WhileEnd" | Case_aux c "E_WhileLoop"
+    (* FILL IN HERE *)
+    ].
 
 上記から2つの定義のコピーし、新しい\ ``ceval``\ を使うようにしました。
 
@@ -967,6 +1048,8 @@ correctness)についてのホーア規則を与えることも可能です。�
 ``repeat``\ コマンドの適切な証明規則を表現する定理\ ``hoare_repeat``\ を述べ、証明しなさい。このときに\ ``hoare_while``\ をモデルとして利用しなさい。
 
 ::
+
+    (* FILL IN HERE *)
 
     End RepeatExercise.
 
@@ -1111,6 +1194,49 @@ program*)は、自身の正しさの(非形式的)証明を伴っています。
       {{fun st => asnat (st Z) = minus z x}}.
     Proof.
 
+
+
+      intros x z. unfold subtract_slowly.
+
+
+      eapply hoare_consequence with (P' := subtract_slowly_invariant x z).
+      apply hoare_while.
+
+      Case "Loop body preserves invariant".
+
+
+        eapply hoare_seq. apply hoare_asgn.
+
+
+        eapply hoare_consequence_pre. apply hoare_asgn.
+
+
+        unfold subtract_slowly_invariant, assn_sub, update, bassn. simpl.
+        intros st [Inv GuardTrue].
+
+
+        remember (beq_nat (asnat (st X)) 0) as Q; destruct Q.
+         inversion GuardTrue.
+         symmetry in HeqQ.  apply beq_nat_false in HeqQ.
+         omega. 
+      Case "Initial state satisfies invariant".
+
+
+        unfold subtract_slowly_invariant.
+        intros st [HX HZ]. omega.
+      Case "Invariant and negated guard imply postcondition".
+
+
+        intros st [Inv GuardFalse].
+        unfold subtract_slowly_invariant in Inv.
+        unfold bassn in GuardFalse. simpl in GuardFalse.
+
+
+        destruct (asnat (st X)).
+          omega.
+          apply ex_falso_quodlibet.   apply GuardFalse. reflexivity.
+        Qed.
+
 練習問題: ゼロへの簡約
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1146,7 +1272,7 @@ program*)は、自身の正しさの(非形式的)証明を伴っています。
       reduce_to_zero
       {{fun st => asnat (st X) = 0}}.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1168,6 +1294,10 @@ program*)は、自身の正しさの(非形式的)証明を伴っています。
 
 上記の例\ ``subtract_slowly``\ のパターンに従って、\ ``add_slowly``\ の適切な事前条件と事後条件を与えなさい。次に(非形式的に)そのプログラムを前例にならって修飾しなさい。
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題: ★★★ (add\_slowly\_formal)
@@ -1175,6 +1305,10 @@ program*)は、自身の正しさの(非形式的)証明を伴っています。
 
 Coq
 の\ ``Hoare_triple``\ のように、\ ``add_slowly``\ の仕様を形式的に記述しなさい。そして正しさを証明しなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1213,6 +1347,94 @@ Coq
            asnat (st X) <= x
         /\ (asnat (st Y) = 0 /\ ev (x - asnat (st X)) \/ asnat (st Y) = 1 /\ ~ev (x - asnat (st X))).
 
+
+
+    Lemma not_ev_ev_S_gen: forall n,
+      (~ ev n -> ev (S n)) /\
+      (~ ev (S n) -> ev (S (S n))).
+    Proof.
+      induction n as [| n'].
+      Case "n = 0".
+        split; intros H.
+        SCase "->".
+          apply ex_falso_quodlibet. apply H. apply ev_0.
+        SCase "<-".
+          apply ev_SS. apply ev_0.
+      Case "n = S n'".
+        inversion IHn' as [Hn HSn]. split; intros H.
+        SCase "->".
+          apply HSn. apply H.
+        SCase "<-".
+          apply ev_SS. apply Hn. intros contra.
+          apply H. apply ev_SS. apply contra.  Qed.
+
+    Lemma not_ev_ev_S : forall n,
+      ~ ev n -> ev (S n).
+    Proof.
+      intros n.
+      destruct (not_ev_ev_S_gen n) as [H _].
+      apply H.
+    Qed.
+
+    Theorem find_parity_correct : forall x,
+      {{fun st => asnat (st X) = x}}
+      find_parity
+      {{fun st => asnat (st Y) = 0 <-> ev x}}.
+    Proof.
+      intros x. unfold find_parity.
+      apply hoare_seq with (Q := find_parity_invariant x).
+      eapply hoare_consequence.
+      apply hoare_while with (P := find_parity_invariant x).
+      Case "Loop body preserves invariant".
+        eapply hoare_seq.
+        apply hoare_asgn.
+        eapply hoare_consequence_pre.
+        apply hoare_asgn.
+        intros st [[Inv1 Inv2] GuardTrue].
+        unfold find_parity_invariant, bassn, assn_sub, aeval in *.
+        rewrite update_eq.
+        rewrite (update_neq Y X); auto.
+        rewrite (update_neq X Y); auto.
+        rewrite update_eq.
+        simpl in GuardTrue. destruct (asnat (st X)).
+          inversion GuardTrue. simpl.
+        split. omega.
+        inversion Inv2 as [[H1 H2] | [H1 H2]]; rewrite H1;
+                         [right|left]; (split; simpl; [omega |]).
+        apply ev_not_ev_S in H2.
+        replace (S (x - S n)) with (x-n) in H2 by omega.
+        rewrite <- minus_n_O. assumption.
+        apply not_ev_ev_S in H2.
+        replace (S (x - S n)) with (x - n) in H2 by omega.
+        rewrite <- minus_n_O. assumption.
+      Case "Precondition implies invariant".
+        intros st H. assumption.
+      Case "Invariant implies postcondition".
+        unfold bassn, find_parity_invariant. simpl.
+        intros st [[Inv1 Inv2] GuardFalse].
+        destruct (asnat (st X)).
+          split; intro.
+            inversion Inv2.
+               inversion H0 as [_ H1]. replace (x-0) with x in H1 by omega.
+               assumption.
+               inversion H0 as [H0' _]. rewrite H in H0'. inversion H0'.
+            inversion Inv2.
+               inversion H0. assumption.
+               inversion H0 as [_ H1]. replace (x-0) with x in H1 by omega.
+               apply ex_falso_quodlibet. apply H1. assumption.
+          apply ex_falso_quodlibet. apply GuardFalse. reflexivity.
+      Case "invariant established before loop".
+        eapply hoare_consequence_pre.
+        apply hoare_asgn.
+        intros st H.
+        unfold assn_sub, find_parity_invariant, update. simpl.
+        subst.
+        split.
+        omega.
+        replace (asnat (st X) - asnat (st X)) with 0 by omega.
+        left. split. reflexivity.
+        apply ev_0.  Qed.
+
 練習問題: ★★★ (wrong\_find\_parity\_invariant)
 ''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -1226,6 +1448,10 @@ Coq
 
 これがなぜうまくはたらかないかを説明しなさい。(ヒント:
 形式的証明を考え、その問題を探そうとするのは時間の無駄です。ループの本体が実際に性質を保存するかどうかだけを考えなさい。)
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1347,6 +1573,10 @@ Coq
 
 上記の正しさの証明に対応する修飾付きプログラムを記述しなさい。
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題: 階乗
@@ -1383,6 +1613,21 @@ Coq
 練習問題: ★★★, optional (fact\_informal)
 ''''''''''''''''''''''''''''''''''''''''
 
+::
+
+    [[
+        {{ X = x }}
+      Z ::= X;
+      Y ::= 1;
+      WHILE Z <> 0 DO
+        Y ::= Y * Z;
+        Z ::= Z - 1
+      END
+        {{ Y = real_fact x }}
+    ]]
+    *)
+
+FILL IN HERE
 ``fact_com``\ を修飾して、以下の事前条件、事後条件として与えられる仕様を満たすことを示しなさい。帰結規則のために(形式的には)算術式や不等号などについての推論が必要になりますが、ここまでと同様、それらは省略して構いません。
 
 (\* FILL IN HERE \*)
@@ -1412,7 +1657,7 @@ fact\_com
       {{fun st => asnat (st X) = x}} fact_com
       {{fun st => asnat (st Y) = real_fact x}}.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1447,6 +1692,8 @@ fact\_com
       {{ fun st => aslist (st X) = l }}
       sum_program
       {{ fun st => asnat (st Y) = sum l }}.
+
+    (* FILL IN HERE *)
 
 ☐ \*
 
@@ -1623,6 +1870,98 @@ Poly\_J.vの\ ``snoc``\ を使っています。
          /\ exists p, p ++ aslist (st X) = l
                       /\ (st Z = VNat 1 <-> appears_in n p)).
 
+        eapply hoare_seq.
+        apply hoare_asgn.
+        apply hoare_if.
+        Case "If taken".
+          eapply hoare_consequence_pre.
+          apply hoare_asgn.
+          intros st [[[H1 [p [H2 H3]]] H9] H10].
+          unfold assn_sub. split.
+
+            rewrite update_neq; try reflexivity.
+            rewrite update_neq; try reflexivity.
+            assumption.
+
+
+            remember (aslist (st X)) as x.
+            destruct x as [|h x'].
+              unfold bassn in H9. unfold beval in H9. unfold aeval in H9.
+              rewrite <- Heqx in H9. inversion H9.
+
+              exists (snoc p h).
+              rewrite update_eq.
+              unfold aeval. rewrite update_neq; try reflexivity.
+              rewrite <- Heqx.
+              split.
+                rewrite snoc_equation. assumption.
+
+                rewrite update_neq; try reflexivity.
+                rewrite update_eq.
+                split.
+                  simpl.
+                  unfold bassn in H10. unfold beval in H10.
+                  unfold aeval in H10. rewrite H1 in H10.
+                  rewrite <- Heqx in H10. simpl in H10.
+                  rewrite (beq_true__eq _ _ H10).
+                  intros. apply appears_in_snoc1.
+
+                  intros. reflexivity.
+        Case "If not taken".
+          eapply hoare_consequence_pre. apply hoare_skip.
+          unfold assn_sub.
+          intros st [[[H1 [p [H2 H3]]] H9] H10].
+          split.
+
+            rewrite update_neq; try reflexivity.
+            assumption.
+
+
+            remember (aslist (st X)) as x.
+            destruct x as [|h x'].
+              unfold bassn in H9. unfold beval in H9. unfold aeval in H9.
+              rewrite <- Heqx in H9. inversion H9.
+
+              exists (snoc p h).
+              split.
+                rewrite update_eq.
+                unfold aeval. rewrite <- Heqx.
+                rewrite snoc_equation. assumption.
+
+                rewrite update_neq; try reflexivity.
+                split.
+                  intros. apply appears_in_snoc2. apply H3. assumption.
+
+                  intros.  destruct (appears_in_snoc3 _ _ _ H).
+                  SCase "later".
+                    inversion H3 as [_ H3'].
+                    apply H3'. assumption.
+                  SCase "here (absurd)".
+                    subst.
+                    unfold bassn in H10. unfold beval in H10. unfold aeval in H10.
+                    rewrite <- Heqx in H10. rewrite H1 in H10.
+                    simpl in H10. rewrite beq_nat_refl in H10.
+                    apply ex_falso_quodlibet. apply H10. reflexivity.
+
+      intros st [H1 [H2 H3]].
+      rewrite H1. rewrite H2. rewrite H3.
+      split.
+        reflexivity.
+        exists []. split.
+          reflexivity.
+          split; intros H; inversion H.
+
+      simpl.   intros st [[H1 [p [H2 H3]]] H5].
+
+      unfold bassn in H5. unfold beval in H5. unfold aeval in H5.
+      destruct (aslist (st X)) as [|h x'].
+        rewrite append_nil in H2.
+        rewrite <- H2.
+        assumption.
+
+        apply ex_falso_quodlibet. apply H5. reflexivity.
+    Qed.
+
 練習問題: ★★★★, optional (list\_reverse)
 ''''''''''''''''''''''''''''''''''''''''
 
@@ -1655,6 +1994,8 @@ Poly\_J.vの\ ``rev``\ を思い出してください。リストを逆順にす
     Proof.
       intros. simpl. apply snoc_equation.
     Qed.
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -1842,6 +2183,16 @@ conditions*)と呼ばれます。なぜなら、修飾が論理的に整合し�
           /\ verification_conditions P2 e
       | DCWhile b Pbody d Ppost      =>
 
+          (P ~~> post d)
+          /\ ((fun st => post d st /\ bassn b st) <~~> Pbody)
+          /\ ((fun st => post d st /\ ~(bassn b st)) <~~> Ppost)
+          /\ verification_conditions (fun st => post d st /\ bassn b st) d
+      | DCPre P' d         =>
+          (P ~~> P') /\ verification_conditions P' d
+      | DCPost d Q        =>
+          verification_conditions P d /\ (post d ~~> Q)
+      end.
+
 そしてついに、主定理です。この定理は、\ ``verification_conditions``\ 関数が正しくはたらくことを主張します。当然ながら、その証明にはホーア論理のすべての規則が必要となります。
 
 これまで、いろいろなタクティックについて、ゴールではなくコンテキストの値に適用する別形を使ってきました。このアイデアの拡張が構文\ ``tactic in *``\ です。この構文では、\ ``tactic``\ をゴールとコンテキストのすべての仮定とに適用します。このしくみは、下記のように\ ``simpl``\ タクティックと組み合わせて使うのが普通です。
@@ -1989,6 +2340,10 @@ conditions*)と呼ばれます。なぜなら、修飾が論理的に整合し�
 
 対応する\ ``dcom``\ 型の値を返す関数を記述し、その正しさを証明しなさい。
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 練習問題: ★★★★, optional (factorial\_dec)
@@ -2005,6 +2360,10 @@ conditions*)と呼ばれます。なぜなら、修飾が論理的に整合し�
       end.
 
 ``subtract_slowly_dec``\ のパターンに倣って、階乗計算の修飾付きImpプログラムを記述し、その正しさを証明しなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -2081,6 +2440,21 @@ l]など)に依存しています。言い換えると、ホーア論理のイ�
           rewrite H1. split; inversion 1.
       Case "IF taken".
         destruct H2 as  [p [H3 H4]].
+
+        remember (aslist (st X)) as x.
+        destruct x as [|h x'].
+          inversion H1.
+          exists (snoc p h).
+          simpl. split.
+             rewrite snoc_equation. assumption.
+             split.
+               rewrite H in H0.
+               simpl in H0.
+               rewrite (beq_true__eq _ _ H0).
+               intros. apply appears_in_snoc1.
+               intros. reflexivity.
+      Case "If not taken".
+        destruct H2 as [p [H3 H4]].
 
         remember (aslist (st X)) as x.
         destruct x as [|h x'].

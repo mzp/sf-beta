@@ -1,6 +1,11 @@
 Norm\_J: STLCの正規化
 =====================
 
+::
+
+    Require Import Stlc_J.
+    Require Import Relations.
+
 (この章はオプションです。)
 
 この章では、単純型付きラムダ計算の別の基本的な理論的性質を検討します。型付けされるプログラムは有限回のステップで停止することが保証されるという事実です。つまり、すべての型付けされた項は正規化可能(*normalizable*)です。
@@ -15,6 +20,10 @@ Norm\_J: STLCの正規化
 '''''''''''
 
 型付けされた項のサイズについての素直な帰納法で正規化性を証明しようとしたとき、どこで失敗するでしょうか？
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -39,6 +48,25 @@ Norm\_J: STLCの正規化
       [ Case_aux c "ty_Bool" | Case_aux c "ty_arrow" | Case_aux c "ty_prod" ].
 
     Inductive tm : Type :=
+
+      | tm_var : id -> tm
+      | tm_app : tm -> tm -> tm
+      | tm_abs : id -> ty -> tm -> tm
+
+      | tm_pair : tm -> tm -> tm
+      | tm_fst : tm -> tm
+      | tm_snd : tm -> tm
+
+      | tm_true : tm
+      | tm_false : tm
+      | tm_if : tm -> tm -> tm -> tm.
+
+
+    Tactic Notation "tm_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "tm_var" | Case_aux c "tm_app" | Case_aux c "tm_abs"
+      | Case_aux c "tm_pair" | Case_aux c "tm_fst" | Case_aux c "tm_snd"
+      | Case_aux c "tm_true" | Case_aux c "tm_false" | Case_aux c "tm_if" ].
 
 置換
 ^^^^
@@ -90,6 +118,58 @@ Norm\_J: STLCの正規化
              t2 ==> t2' ->
              (tm_app v1 t2) ==> (tm_app v1 t2')
 
+      | ST_Pair1 : forall t1 t1' t2,
+            t1 ==> t1' ->
+            (tm_pair t1 t2) ==> (tm_pair t1' t2)
+      | ST_Pair2 : forall v1 t2 t2',
+            value v1 ->
+            t2 ==> t2' ->
+            (tm_pair v1 t2) ==> (tm_pair v1 t2')
+      | ST_Fst : forall t1 t1',
+            t1 ==> t1' ->
+            (tm_fst t1) ==> (tm_fst t1')
+      | ST_FstPair : forall v1 v2,
+            value v1 ->
+            value v2 ->
+            (tm_fst (tm_pair v1 v2)) ==> v1
+      | ST_Snd : forall t1 t1',
+            t1 ==> t1' ->
+            (tm_snd t1) ==> (tm_snd t1')
+      | ST_SndPair : forall v1 v2,
+            value v1 ->
+            value v2 ->
+            (tm_snd (tm_pair v1 v2)) ==> v2
+
+      | ST_IfTrue : forall t1 t2,
+            (tm_if tm_true t1 t2) ==> t1
+      | ST_IfFalse : forall t1 t2,
+            (tm_if tm_false t1 t2) ==> t2
+      | ST_If : forall t0 t0' t1 t2,
+            t0 ==> t0' ->
+            (tm_if t0 t1 t2) ==> (tm_if t0' t1 t2)
+
+    where "t1 '==>' t2" := (step t1 t2).
+
+    Tactic Notation "step_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "ST_AppAbs" | Case_aux c "ST_App1" | Case_aux c "ST_App2"
+      | Case_aux c "ST_Pair1" | Case_aux c "ST_Pair2"
+        | Case_aux c "ST_Fst" | Case_aux c "ST_FstPair"
+        | Case_aux c "ST_Snd" | Case_aux c "ST_SndPair"
+      | Case_aux c "ST_IfTrue" | Case_aux c "ST_IfFalse" | Case_aux c "ST_If" ].
+
+    Notation stepmany := (refl_step_closure step).
+    Notation "t1 '==>*' t2" := (stepmany t1 t2) (at level 40).
+
+    Hint Constructors step.
+
+    Notation step_normal_form := (normal_form step).
+
+    Lemma value__normal : forall t, value t -> step_normal_form t.
+    Proof with eauto.
+      intros t H; induction H; intros [t' ST]; inversion ST...
+    Qed.
+
 型付け
 ^^^^^^
 
@@ -98,6 +178,50 @@ Norm\_J: STLCの正規化
     Definition context := partial_map ty.
 
     Inductive has_type : context -> tm -> ty -> Prop :=
+
+      | T_Var : forall Gamma x T,
+          Gamma x = Some T ->
+          has_type Gamma (tm_var x) T
+      | T_Abs : forall Gamma x T11 T12 t12,
+          has_type (extend Gamma x T11) t12 T12 ->
+          has_type Gamma (tm_abs x T11 t12) (ty_arrow T11 T12)
+      | T_App : forall T1 T2 Gamma t1 t2,
+          has_type Gamma t1 (ty_arrow T1 T2) ->
+          has_type Gamma t2 T1 ->
+          has_type Gamma (tm_app t1 t2) T2
+
+      | T_Pair : forall Gamma t1 t2 T1 T2,
+          has_type Gamma t1 T1 ->
+          has_type Gamma t2 T2 ->
+          has_type Gamma (tm_pair t1 t2) (ty_prod T1 T2)
+      | T_Fst : forall Gamma t T1 T2,
+          has_type Gamma t (ty_prod T1 T2) ->
+          has_type Gamma (tm_fst t) T1
+      | T_Snd : forall Gamma t T1 T2,
+          has_type Gamma t (ty_prod T1 T2) ->
+          has_type Gamma (tm_snd t) T2
+
+      | T_True : forall Gamma,
+          has_type Gamma tm_true ty_Bool
+      | T_False : forall Gamma,
+          has_type Gamma tm_false ty_Bool
+      | T_If : forall Gamma t0 t1 t2 T,
+          has_type Gamma t0 ty_Bool ->
+          has_type Gamma t1 T ->
+          has_type Gamma t2 T ->
+          has_type Gamma (tm_if t0 t1 t2) T
+    .
+
+    Hint Constructors has_type.
+
+    Tactic Notation "has_type_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "T_Var" | Case_aux c "T_Abs" | Case_aux c "T_App"
+      | Case_aux c "T_Pair" | Case_aux c "T_Fst" | Case_aux c "T_Snd"
+      | Case_aux c "T_True" | Case_aux c "T_False" | Case_aux c "T_If" ].
+
+    Hint Extern 2 (has_type _ (tm_app _ _) _) => eapply T_App; auto.
+    Hint Extern 2 (_ = _) => compute; reflexivity.
 
 コンテキスト不変性
 ^^^^^^^^^^^^^^^^^^
@@ -116,6 +240,76 @@ Norm\_J: STLCの正規化
             appears_free_in x t12 ->
             appears_free_in x (tm_abs y T11 t12)
 
+      | afi_pair1 : forall x t1 t2,
+          appears_free_in x t1 ->
+          appears_free_in x (tm_pair t1 t2)
+      | afi_pair2 : forall x t1 t2,
+          appears_free_in x t2 ->
+          appears_free_in x (tm_pair t1 t2)
+      | afi_fst : forall x t,
+          appears_free_in x t ->
+          appears_free_in x (tm_fst t)
+      | afi_snd : forall x t,
+          appears_free_in x t ->
+          appears_free_in x (tm_snd t)
+
+      | afi_if0 : forall x t0 t1 t2,
+          appears_free_in x t0 ->
+          appears_free_in x (tm_if t0 t1 t2)
+      | afi_if1 : forall x t0 t1 t2,
+          appears_free_in x t1 ->
+          appears_free_in x (tm_if t0 t1 t2)
+      | afi_if2 : forall x t0 t1 t2,
+          appears_free_in x t2 ->
+          appears_free_in x (tm_if t0 t1 t2)
+    .
+
+    Hint Constructors appears_free_in.
+
+    Definition closed (t:tm) :=
+      forall x, ~ appears_free_in x t.
+
+    Lemma context_invariance : forall Gamma Gamma' t S,
+         has_type Gamma t S  ->
+         (forall x, appears_free_in x t -> Gamma x = Gamma' x)  ->
+         has_type Gamma' t S.
+    Proof with eauto.
+      intros. generalize dependent Gamma'.
+      has_type_cases (induction H) Case;
+        intros Gamma' Heqv...
+      Case "T_Var".
+        apply T_Var... rewrite <- Heqv...
+      Case "T_Abs".
+        apply T_Abs... apply IHhas_type. intros y Hafi.
+        unfold extend. remember (beq_id x y) as e.
+        destruct e...
+      Case "T_Pair".
+        apply T_Pair...
+      Case "T_If".
+        eapply T_If...
+    Qed.
+
+    Lemma free_in_context : forall x t T Gamma,
+       appears_free_in x t ->
+       has_type Gamma t T ->
+       exists T', Gamma x = Some T'.
+    Proof with eauto.
+      intros x t T Gamma Hafi Htyp.
+      has_type_cases (induction Htyp) Case; inversion Hafi; subst...
+      Case "T_Abs".
+        destruct IHHtyp as [T' Hctx]... exists T'.
+        unfold extend in Hctx.
+        apply not_eq_beq_id_false in H2. rewrite H2 in Hctx...
+    Qed.
+
+    Corollary typable_empty__closed : forall t T,
+        has_type empty t T  ->
+        closed t.
+    Proof.
+      intros. unfold closed. intros x H1.
+      destruct (free_in_context _ _ _ _ H1 H) as [T' C].
+      inversion C.  Qed.
+
 保存
 ^^^^
 
@@ -126,6 +320,64 @@ Norm\_J: STLCの正規化
          has_type empty v U   ->
          has_type Gamma (subst x v t) S.
     Proof with eauto.
+
+      intros Gamma x U v t S Htypt Htypv.
+      generalize dependent Gamma. generalize dependent S.
+
+      tm_cases (induction t) Case;
+        intros S Gamma Htypt; simpl; inversion Htypt; subst...
+      Case "tm_var".
+        simpl. rename i into y.
+
+        remember (beq_id x y) as e. destruct e.
+        SCase "x=y".
+
+          apply beq_id_eq in Heqe. subst.
+          unfold extend in H1. rewrite <- beq_id_refl in H1.
+          inversion H1; subst. clear H1.
+          eapply context_invariance...
+          intros x Hcontra.
+          destruct (free_in_context _ _ S empty Hcontra) as [T' HT']...
+          inversion HT'.
+        SCase "x<>y".
+
+          apply T_Var... unfold extend in H1. rewrite <- Heqe in H1...
+      Case "tm_abs".
+        rename i into y. rename t into T11.
+
+        apply T_Abs...
+        remember (beq_id x y) as e. destruct e.
+        SCase "x=y".
+
+          eapply context_invariance...
+          apply beq_id_eq in Heqe. subst.
+          intros x Hafi. unfold extend.
+          destruct (beq_id y x)...
+        SCase "x<>y".
+
+          apply IHt. eapply context_invariance...
+          intros z Hafi. unfold extend.
+          remember (beq_id y z) as e0. destruct e0...
+          apply beq_id_eq in Heqe0. subst.
+          rewrite <- Heqe...
+    Qed.
+
+    Theorem preservation : forall t t' T,
+         has_type empty t T  ->
+         t ==> t'  ->
+         has_type empty t' T.
+    Proof with eauto.
+      intros t t' T HT.
+
+      remember (@empty ty) as Gamma. generalize dependent HeqGamma.
+      generalize dependent t'.
+
+      has_type_cases (induction HT) Case;
+        intros t' HeqGamma HE; subst; inversion HE; subst...
+      Case "T_App".
+
+        inversion HE; subst...
+        SCase "ST_AppAbs".
 
           apply substitution_preserves_typing with T1...
           inversion HT1...
@@ -146,6 +398,7 @@ Norm\_J: STLCの正規化
        partial_function step.
     Proof with eauto.
        unfold partial_function.
+       (* FILL IN HERE *)
 
 ここを埋めなさい
 
@@ -221,12 +474,14 @@ positivity requirement\_のテストを通らないので、Coqはこれを拒�
       (match T with
        | ty_Bool  => True
        | ty_arrow T1 T2 => (forall s, R T1 s -> R T2 (tm_app t s))
+    (* FILL IN HERE *)
 
 ここを埋めなさい
 
 ::
 
-    | ty_prod T1 T2 => False
+    | ty_prod T1 T2 => False 
+       end).
 
 この定義からすぐに導かれることとして、すべての集合\ ``R_T``\ について、そのすべての要素は停止して値となり、また型\ ``T``\ について閉じていることが言えます:
 
@@ -279,6 +534,18 @@ positivity requirement\_のテストを通らないので、Coqはこれを拒�
      induction T;  intros t t' E Rt; unfold R; fold R; unfold R in Rt; fold R in Rt;
                    destruct Rt as [typable_empty_t [halts_t RRt]].
 
+      split. eapply preservation; eauto.
+      split. apply (step_preserves_halting _ _ E); eauto.
+      auto.
+
+      split. eapply preservation; eauto.
+      split. apply (step_preserves_halting _ _ E); eauto.
+      intros.
+      eapply IHT2.
+      apply  ST_App1. apply E.
+      apply RRt; auto.
+      (* FILL IN HERE *)
+
 ここを埋めなさい
 
 ::
@@ -304,6 +571,7 @@ positivity requirement\_のテストを通らないので、Coqはこれを拒�
     Lemma step_preserves_R' : forall T t t',
       has_type empty t T -> (t ==> t') -> R T t' -> R T t.
     Proof.
+      (* FILL IN HERE *)
 
 ここを埋めなさい
 
@@ -407,6 +675,7 @@ assignment*)と呼びます。
          ~ appears_free_in x t  ->
          forall t', subst x t' t = t.
     Proof with eauto.
+      (* FILL IN HERE *)
 
 ここを埋めなさい
 
@@ -422,7 +691,53 @@ assignment*)と呼びます。
 
 
     Lemma subst_not_afi : forall t x v, closed v ->  ~ appears_free_in x (subst x v t).
+    Proof with eauto.  
+      unfold closed, not.
+      tm_cases (induction t) Case; intros x v P A; simpl in A.
+        Case "tm_var".
+         remember (beq_id x i) as e; destruct e...
+           inversion A; subst. rewrite <- beq_id_refl in Heqe; inversion Heqe.
+        Case "tm_app".
+         inversion A; subst...
+        Case "tm_abs".
+         remember (beq_id x i) as e; destruct e...
+           apply beq_id_eq in Heqe; subst. inversion A; subst...
+           inversion A; subst...
+        Case "tm_pair".
+         inversion A; subst...
+        Case "tm_fst".
+         inversion A; subst...
+        Case "tm_snd".
+         inversion A; subst...
+        Case "tm_true".
+         inversion A.
+        Case "tm_false".
+         inversion A.
+        Case "tm_if".
+         inversion A; subst...
+    Qed.
+
+
+    Lemma duplicate_subst : forall t' x t v,
+      closed v -> subst x t (subst x v t') = subst x v t'.
+    Proof.
+      intros. eapply vacuous_substitution. apply subst_not_afi.  auto.
+    Qed.
+
+    Lemma swap_subst : forall t x x1 v v1, x <> x1 -> closed v -> closed v1 ->
+                       subst x1 v1 (subst x v t) = subst x v (subst x1 v1 t).
     Proof with eauto.
+     tm_cases (induction t) Case; intros; simpl.
+      Case "tm_var".
+       remember (beq_id x i) as e; destruct e; remember (beq_id x1 i) as e; destruct e.
+          apply  beq_id_eq in Heqe. apply beq_id_eq in Heqe0. subst.
+             apply ex_falso_quodlibet...
+          apply beq_id_eq in Heqe; subst.  simpl.
+             rewrite <- beq_id_refl.  apply subst_closed...
+          apply beq_id_eq in Heqe0; subst.  simpl.
+             rewrite <- beq_id_refl. rewrite subst_closed...
+          simpl. rewrite <- Heqe. rewrite <- Heqe0...
+      (* FILL IN HERE *)
 
 ここを埋めなさい
 
@@ -504,6 +819,10 @@ assignment*)と呼びます。
     Qed.
 
 他の項コンストラクタに対しても同様の関数が必要になるでしょう。
+
+::
+
+    (* FILL IN HERE *)
 
 ここを埋めなさい
 
@@ -597,6 +916,8 @@ stepmany(``==>*``)についての合同補題
          apply ST_App2; eauto.  auto.
     Qed.
 
+    (* FILL IN HERE *)
+
 ここを埋めなさい
 
 R補題
@@ -630,6 +951,57 @@ R補題
     Proof.
       intros c env0 t T HT V.
       generalize dependent env0.
+
+      remember (mextend empty c) as Gamma.
+      assert (forall x, Gamma x = lookup x c).
+        intros. rewrite HeqGamma. rewrite mextend_lookup. auto.
+      clear HeqGamma.
+      generalize dependent c.
+      has_type_cases (induction HT) Case; intros.
+
+      Case "T_Var".
+       rewrite H0 in H. destruct (instantiation_domains_match V H) as [t P].
+       eapply instantiation_R; eauto.
+       rewrite msubst_var.  rewrite P. auto. eapply instantiation_env_closed; eauto.
+
+      Case "T_Abs".
+        rewrite msubst_abs.
+
+        assert (WT: has_type empty (tm_abs x T11 (msubst (drop x env0) t12)) (ty_arrow T11 T12)).
+         eapply T_Abs. eapply msubst_preserves_typing.  eapply instantiation_drop; eauto.
+          eapply context_invariance.  apply HT.
+          intros.
+          unfold extend. rewrite mextend_drop. remember (beq_id x x0) as e; destruct e.  auto.
+            rewrite H.
+              clear - c Heqe. induction c.
+                  simpl.  rewrite <- Heqe.  auto.
+                  simpl. destruct a.  unfold extend. destruct (beq_id i x0); auto.
+        unfold R. fold R. split.
+           auto.
+         split. apply value_halts. apply v_abs.
+         intros.
+         destruct (R_halts H0) as [v [P Q]].
+         pose proof (stepmany_preserves_R _ _ _ P H0).
+         apply stepmany_preserves_R' with (msubst ((x,v)::env0) t12).
+           eapply T_App. eauto.
+           apply R_typable_empty; auto.
+           eapply rsc_trans.  eapply stepmany_App2; eauto.
+           eapply rsc_R.
+           simpl.  rewrite subst_msubst.
+           eapply ST_AppAbs; eauto.
+           eapply typable_empty__closed.
+           apply (R_typable_empty H1).
+           eapply instantiation_env_closed; eauto.
+           eapply (IHHT ((x,T11)::c)).
+              intros. unfold extend, lookup. destruct (beq_id x x0); auto.
+           constructor; auto.
+
+      Case "T_App".
+        rewrite msubst_app.
+        destruct (IHHT1 c H env0 V) as [_ [_ P1]].
+        pose proof (IHHT2 c H env0 V) as P2.  fold R in P1.  auto.
+
+      (* FILL IN HERE *)
 
 ここを埋めなさい
 

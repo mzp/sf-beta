@@ -1,6 +1,11 @@
 Typechecking\_J: STLCの型チェッカ
 =================================
 
+::
+
+    Require Export Stlc_J.
+    Require Import Relations.
+
 STLCの\ ``has_type``\ 関係は(あるコンテキストのもとで)項が型に属するという意味を定義します。しかし、それ自身では、項に型付けができるかどうかの「チェック方法」は与えません。
 
 幸いにも、\ ``has_type``\ を定義する規則は構文指向(*syntax

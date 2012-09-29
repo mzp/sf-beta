@@ -91,7 +91,8 @@ reflexivity（と組み込みの簡約）だけで証明することができま
     Theorem surjective_pairing_stuck : forall (p : natprod),
       p = (fst p, snd p).
     Proof.
-      simpl.
+      simpl. 
+    Admitted.
 
 ``simpl``\ で\ ``fst``\ や\ ``snd``\ の中のパターンマッチを実行できるよう、\ ``p``\ の構造を明らかにする必要があります。これには\ ``destruct``\ を使います。
 
@@ -115,7 +116,7 @@ reflexivity（と組み込みの簡約）だけで証明することができま
     Theorem snd_fst_is_swap : forall (p : natprod),
       (snd p, fst p) = swap_pair p.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -253,7 +254,26 @@ head）を返し、\ ``tail``\ は最初の要素を除いたものを返しま�
 ::
 
     Fixpoint nonzeros (l:natlist) : natlist :=
-       Admitted.
+      (* FILL IN HERE *) admit.
+
+    Example test_nonzeros:            nonzeros [0,1,0,2,3,0,0] = [1,2,3].
+     (* FILL IN HERE *) Admitted.
+
+    Fixpoint oddmembers (l:natlist) : natlist :=
+      (* FILL IN HERE *) admit.
+
+    Example test_oddmembers:            oddmembers [0,1,0,2,3,0,0] = [1,3].
+     (* FILL IN HERE *) Admitted.
+
+    Fixpoint countoddmembers (l:natlist) : nat :=
+      (* FILL IN HERE *) admit.
+
+    Example test_countoddmembers1:    countoddmembers [1,0,3,1,4,5] = 4.
+     (* FILL IN HERE *) Admitted.
+    Example test_countoddmembers2:    countoddmembers [0,2,4] = 0.
+     (* FILL IN HERE *) Admitted.
+    Example test_countoddmembers3:    countoddmembers nil = 0.
+     (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -270,7 +290,16 @@ Coq
 ::
 
     Fixpoint alternate (l1 l2 : natlist) : natlist :=
-       Admitted.
+      (* FILL IN HERE *) admit.
+
+    Example test_alternate1:        alternate [1,2,3] [4,5,6] = [1,4,2,5,3,6].
+     (* FILL IN HERE *) Admitted.
+    Example test_alternate2:        alternate [1] [4,5,6] = [1,4,5,6].
+     (* FILL IN HERE *) Admitted.
+    Example test_alternate3:        alternate [1,2,3] [4] = [1,4,2,3].
+     (* FILL IN HERE *) Admitted.
+    Example test_alternate4:        alternate [] [20,30] = [20,30].
+     (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -291,19 +320,42 @@ Coq
 ::
 
     Fixpoint count (v:nat) (s:bag) : nat :=
+      (* FILL IN HERE *) admit.
 
 下の証明はすべて\ ``reflexivity``\ だけでできます。
 
 ::
 
     Example test_count1:              count 1 [1,2,3,1,4,1] = 3.
+     (* FILL IN HERE *) Admitted.
+    Example test_count2:              count 6 [1,2,3,1,4,1] = 0.
+     (* FILL IN HERE *) Admitted.
 
 多重集合の\ ``sum``\ （直和。または非交和）は集合の\ ``union``\ （和）と同じようなものです。\ ``sum a b``\ は\ ``a``\ と\ ``b``\ の両方の要素を持つ多重集合です。（数学者は通常、多重集合の\ ``union``\ にもう少し異なる定義を与えます。それが、この関数の名前を\ ``union``\ にしなかった理由です。）\ ``sum``\ のヘッダには引数の名前を与えませんでした。さらに、\ ``Fixpoint``\ ではなく\ ``Definition``\ を使っています。ですから、引数に名前がついていたとしても再帰的な処理はできません。問題をこのように設定したのは、\ ``sum``\ を（定義済みの関数を使うといった）別の方法で定義できないか考えさせるためです。
 
 ::
 
     Definition sum : bag -> bag -> bag :=
-       Admitted.
+      (* FILL IN HERE *) admit.
+
+    Example test_sum1:              count 1 (sum [1,2,3] [1,4,1]) = 3.
+     (* FILL IN HERE *) Admitted.
+
+    Definition add (v:nat) (s:bag) : bag :=
+      (* FILL IN HERE *) admit.
+
+    Example test_add1:                count 1 (add 1 [1,4,1]) = 3.
+     (* FILL IN HERE *) Admitted.
+    Example test_add2:                count 5 (add 1 [1,4,1]) = 0.
+     (* FILL IN HERE *) Admitted.
+
+    Definition member (v:nat) (s:bag) : bool :=
+      (* FILL IN HERE *) admit.
+
+    Example test_member1:             member 1 [1,4,1] = true.
+     (* FILL IN HERE *) Admitted.
+    Example test_member2:             member 2 [1,4,1] = false.
+     (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -315,13 +367,51 @@ Coq
 ::
 
     Fixpoint remove_one (v:nat) (s:bag) : bag :=
-       Admitted.
+
+
+      (* FILL IN HERE *) admit.
+
+    Example test_remove_one1:         count 5 (remove_one 5 [2,1,5,4,1]) = 0.
+     (* FILL IN HERE *) Admitted.
+    Example test_remove_one2:         count 5 (remove_one 5 [2,1,4,1]) = 0.
+     (* FILL IN HERE *) Admitted.
+    Example test_remove_one3:         count 4 (remove_one 5 [2,1,4,5,1,4]) = 2.
+     (* FILL IN HERE *) Admitted.
+    Example test_remove_one4:
+      count 5 (remove_one 5 [2,1,5,4,5,1,4]) = 1.
+     (* FILL IN HERE *) Admitted.
+
+    Fixpoint remove_all (v:nat) (s:bag) : bag :=
+      (* FILL IN HERE *) admit.
+
+    Example test_remove_all1:          count 5 (remove_all 5 [2,1,5,4,1]) = 0.
+     (* FILL IN HERE *) Admitted.
+    Example test_remove_all2:          count 5 (remove_all 5 [2,1,4,1]) = 0.
+     (* FILL IN HERE *) Admitted.
+    Example test_remove_all3:          count 4 (remove_all 5 [2,1,4,5,1,4]) = 2.
+     (* FILL IN HERE *) Admitted.
+    Example test_remove_all4:          count 5 (remove_all 5 [2,1,5,4,5,1,4,5,1,4]) = 0.
+     (* FILL IN HERE *) Admitted.
+
+    Fixpoint subset (s1:bag) (s2:bag) : bool :=
+      (* FILL IN HERE *) admit.
+
+    Example test_subset1:              subset [1,2] [2,1,4,1] = true.
+     (* FILL IN HERE *) Admitted.
+    Example test_subset2:              subset [1,2,2] [2,1,4,1] = false.
+     (* FILL IN HERE *) Admitted.
 
 ☐
 
 練習問題: ★★★, recommended (bag\_theorem)
 '''''''''''''''''''''''''''''''''''''''''
 
+::
+
+    []
+     *)
+
+FILL IN HERE
 ``count``\ や\ ``add``\ を使ったバッグに関する面白い定理書き、それを証明しなさい。この問題はいわゆる自由課題で、真になることがわかっていても、証明にはまだ習っていない技を使わなければならない定理を思いついてしまうこともあります。証明に行き詰まってしまったら気軽に質問してください。
 
 (\* FILL IN HERE \*)☐
@@ -434,6 +524,12 @@ Coq の証明は、 Coq
       length (l1 ++ l2) = (length l1) + (length l2).
     Proof.
 
+      intros l1 l2. induction l1 as [| n l1'].
+      Case "l1 = nil".
+        reflexivity.
+      Case "l1 = cons".
+        simpl. rewrite -> IHl1'. reflexivity.  Qed.
+
 リストに対する帰納的証明のもう少し入り組んだ例を見てみましょう。リストの右側に\ ``cons``\ する関数\ ``snoc``\ を定義したとしましょう。
 
 ::
@@ -470,7 +566,9 @@ Coq の証明は、 Coq
       Case "l = []".
         reflexivity.
       Case "l = n :: l'".
-        simpl.
+        simpl. 
+
+    Admitted.
 
 この\ ``snoc``\ に関する等式が成り立つことを示せれば証明が先に進むはずです。この式を取り出して別個の補題として証明してみましょう。
 
@@ -613,6 +711,19 @@ Coq
     Theorem app_nil_end : forall l : natlist,
       l ++ [] = l.
     Proof.
+      (* FILL IN HERE *) Admitted.
+
+
+    Theorem rev_involutive : forall l : natlist,
+      rev (rev l) = l.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+
+    Theorem distr_rev : forall l1 l2 : natlist,
+      rev (l1 ++ l2) = (rev l2) ++ (rev l1).
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 次の問題には簡単な解法があります。こんがらがってしまったようであれば、少し戻って単純な方法を探してみましょう。
 
@@ -621,6 +732,12 @@ Coq
     Theorem app_ass4 : forall l1 l2 l3 l4 : natlist,
       l1 ++ (l2 ++ (l3 ++ l4)) = ((l1 ++ l2) ++ l3) ++ l4.
     Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem snoc_append : forall (l:natlist) (n:nat),
+      snoc l n = l ++ [n].
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 前に書いた\ ``nonzeros``\ 関数に関する練習問題です。
 
@@ -629,7 +746,7 @@ Coq
     Lemma nonzeros_length : forall l1 l2 : natlist,
       nonzeros (l1 ++ l2) = (nonzeros l1) ++ (nonzeros l2).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -645,6 +762,8 @@ Coq
    に関する、自明でない定理を考えて書きなさい。
 -  それを証明しなさい。
 
+   (\* FILL IN HERE \*)
+
 ☐
 
 練習問題: ★★, optional (bag\_proofs)
@@ -658,6 +777,7 @@ Coq
     Theorem count_member_nonzero : forall (s : bag),
       ble_nat 1 (count 1 (1 :: s)) = true.
     Proof.
+      (* FILL IN HERE *) Admitted.
 
 以下の\ ``ble_nat``\ に関する補題は、この次の証明に使えるかもしれません。
 
@@ -675,7 +795,7 @@ Coq
     Theorem remove_decreases_count: forall (s : bag),
       ble_nat (count 0 (remove_one 0 s)) (count 0 s) = true.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -689,6 +809,12 @@ Coq
 
 バッグについて\ ``count``\ と\ ``sum``\ を使った定理を考え、それを証明しなさい。
 
+::
+
+    (* FILL IN HERE *)
+    []
+     *)
+
 練習問題: ★★★★, optional (rev\_injective)
 '''''''''''''''''''''''''''''''''''''''''
 
@@ -701,6 +827,10 @@ Coq
 であることを証明しなさい。
 
 この練習問題には簡単な解法と難しい解法があります。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -721,7 +851,12 @@ Coq
 
     Fixpoint index_bad (n:nat) (l:natlist) : nat :=
       match l with
-      | nil => 42
+      | nil => 42  
+      | a :: l' => match beq_nat n O with
+                   | true => a
+                   | false => index_bad (pred n) l'
+                   end
+      end.
 
 これに対して、型を\ ``nat -> natlist -> natoption``\ とすれば、リストが短かすぎた場合には\ ``None``\ を返し、リストが十分に長く、\ ``n``\ 番目の要素が\ ``a``\ であった場合には\ ``Some a``\ を返すことができます。
 
@@ -777,7 +912,16 @@ Coq には 組み込みのブーリアン型がないため、 Coq
 ::
 
     Definition hd_opt (l : natlist) : natoption :=
-       Admitted.
+      (* FILL IN HERE *) admit.
+
+    Example test_hd_opt1 : hd_opt [] = None.
+     (* FILL IN HERE *) Admitted.
+
+    Example test_hd_opt2 : hd_opt [1] = Some 1.
+     (* FILL IN HERE *) Admitted.
+
+    Example test_hd_opt3 : hd_opt [5,6] = Some 5.
+     (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -791,7 +935,7 @@ Coq には 組み込みのブーリアン型がないため、 Coq
     Theorem option_elim_hd : forall (l:natlist) (default:nat),
       hd default l = option_elim (hd_opt l) default.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -803,7 +947,19 @@ Coq には 組み込みのブーリアン型がないため、 Coq
 ::
 
     Fixpoint beq_natlist (l1 l2 : natlist) : bool :=
-       Admitted.
+      (* FILL IN HERE *) admit.
+
+    Example test_beq_natlist1 :   (beq_natlist nil nil = true).
+     (* FILL IN HERE *) Admitted.
+    Example test_beq_natlist2 :   beq_natlist [1,2,3] [1,2,3] = true.
+     (* FILL IN HERE *) Admitted.
+    Example test_beq_natlist3 :   beq_natlist [1,2,3] [1,2,4] = false.
+     (* FILL IN HERE *) Admitted.
+
+    Theorem beq_natlist_refl : forall l:natlist,
+      true = beq_natlist l l.
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -821,6 +977,9 @@ Coq には 組み込みのブーリアン型がないため、 Coq
     Proof.
       intros n m o p eq1 eq2.
       rewrite <- eq1.
+
+
+      apply eq2.  Qed.
 
 また、\ ``apply``\ タクティックは、条件付きの仮定や補題にも使うことができます。適用するものに含意が含まれていれば、含意の前提部分が証明すべきサブゴールに加えられます。
 
@@ -860,7 +1019,7 @@ Coq には 組み込みのブーリアン型がないため、 Coq
          evenb 3 = true ->
          oddb 4 = true.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -875,6 +1034,9 @@ Coq には 組み込みのブーリアン型がないため、 Coq
       intros n H.
       simpl.
 
+
+    Admitted.
+
 そのような場合には\ ``symmetry``\ タクティックを使って、ゴールの等式の左辺と右辺を入れ替えることができます。
 
 ::
@@ -885,7 +1047,9 @@ Coq には 組み込みのブーリアン型がないため、 Coq
     Proof.
       intros n H.
       symmetry.
-      simpl.
+      simpl.   
+
+      apply H.  Qed.
 
 練習問題: ★★★, recommended (apply\_exercise1)
 '''''''''''''''''''''''''''''''''''''''''''''
@@ -896,9 +1060,11 @@ Coq には 組み込みのブーリアン型がないため、 Coq
          l = rev l' ->
          l' = rev l.
     Proof.
-       Admitted.
 
-☐
+
+      (* FILL IN HERE *) Admitted.
+
+FILL IN HERE ☐
 
 練習問題: ★ (apply\_rewrite)
 ''''''''''''''''''''''''''''
@@ -937,7 +1103,7 @@ Coq を使って実際に違いを確認してください。
       (l1 ++ l2) ++ l3 = l1 ++ (l2 ++ l3).
     Proof.
       intros l1. induction l1 as [ | n l1'].
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -952,12 +1118,16 @@ Coq を使って実際に違いを確認してください。
       beq_nat n m = beq_nat m n.
     Proof.
       intros n. induction n as [| n'].
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
-練習問題: ★★★, recommended (beq\_nat\_sym\_informal)
-''''''''''''''''''''''''''''''''''''''''''''''''''''
+::
+
+    []
+     *)
+
+FILL IN HERE ##### 練習問題: ★★★, recommended (beq\_nat\_sym\_informal)
 
 以下の補題について上の証明と対応する非形式的な証明を書きなさい。
 
@@ -1004,7 +1174,10 @@ Coq を使って実際に違いを確認してください。
 
 ::
 
-    Admitted.
+    Theorem dictionary_invariant1 : forall (d : dictionary) (k v: nat),
+      (find k (insert k v d)) = Some v.
+    Proof.
+     (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1013,7 +1186,10 @@ Coq を使って実際に違いを確認してください。
 
 ::
 
-    Admitted.
+    Theorem dictionary_invariant2 : forall (d : dictionary) (m n o: nat),
+      (beq_nat m n) = false -> (find m d) = (find m (insert n o d)).
+    Proof.
+     (* FILL IN HERE *) Admitted.
 
 ☐
 

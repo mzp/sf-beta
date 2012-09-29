@@ -1,6 +1,10 @@
 Stlc\_J: 単純型付きラムダ計算
 =============================
 
+::
+
+    Require Export Types_J.
+
 単純型付きラムダ計算
 --------------------
 
@@ -335,6 +339,21 @@ STLCのスモールステップ簡約関係は、これまで見てきたもの�
       simpl.
       apply rsc_refl.  Qed.
 
+
+    Lemma step_example1' :
+      (tm_app idBB idB) ==>* idB.
+    Proof. normalize.  Qed.
+
+    Lemma step_example2 :
+      (tm_app idBB (tm_app idBB idB)) ==>* idB.
+    Proof.
+      eapply rsc_step.
+        apply ST_App2. auto.
+        apply ST_AppAbs. auto.
+      eapply rsc_step.
+        apply ST_AppAbs. simpl. auto.
+      simpl. apply rsc_refl.  Qed.
+
 再び、上述の\ ``normalize``\ タクティックを使って、証明を簡単にすることができます。
 
 ::
@@ -356,7 +375,7 @@ STLCのスモールステップ簡約関係は、これまで見てきたもの�
            (tm_app (tm_app idBBBB idBB) idB)
       ==>* idB.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -530,7 +549,7 @@ auto は直接解くことができることに注意します。
               (tm_app (tm_var b) (tm_app (tm_var b) (tm_var a)))))
         (ty_arrow ty_Bool (ty_arrow (ty_arrow ty_Bool ty_Bool) ty_Bool)).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -555,7 +574,7 @@ auto は直接解くことができることに注意します。
           T.
 
     Proof with auto.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -580,6 +599,14 @@ auto は直接解くことができることに注意します。
     Proof.
       intros C. destruct C.
 
+      inversion H. subst. clear H.
+      inversion H5. subst. clear H5.
+      inversion H4. subst. clear H4.
+      inversion H2. subst. clear H2.
+      inversion H5. subst. clear H5.
+
+      inversion H1.  Qed.
+
 練習問題: ★★★ (typing\_nonexample\_3)
 '''''''''''''''''''''''''''''''''''''
 
@@ -597,7 +624,7 @@ auto は直接解くことができることに注意します。
                  (tm_app (tm_var a) (tm_var a)))
               T).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -702,7 +729,7 @@ auto は直接解くことができることに注意します。
         has_type empty t T  ->
         closed t.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -730,6 +757,12 @@ auto は直接解くことができることに注意します。
    has\_type\_cases (induction H) Case; intros; auto. Case "T\_Var".
    apply T\_Var. rewrite <- H0... Case "T\_Abs". apply T\_Abs. apply
    IHhas\_type. intros x0 Hafi.
+
+   ::
+
+       unfold extend. remember (beq_id x x0) as e. destruct e...
+
+   Case "T\_App". apply T\_App with T11... Qed.
 
 ついに、簡約が型を保存することの証明の概念的な核心です。つまり、「置換」が型を保存することを調べます。
 
@@ -791,6 +824,34 @@ lemma)が、どんなコンテキストでも\ ``v``\ が型\ ``U``\ を持つ�
       generalize dependent Gamma. generalize dependent T.
       tm_cases (induction t) Case; intros T Gamma H;
 
+        inversion H; subst; simpl...
+      Case "tm_var".
+        rename i into y. remember (beq_id x y) as e. destruct e.
+        SCase "x=y".
+          apply beq_id_eq in Heqe. subst.
+          rewrite extend_eq in H2.
+          inversion H2; subst. clear H2.
+                      eapply context_invariance... intros x Hcontra.
+          destruct (free_in_context _ _ T empty Hcontra) as [T' HT']...
+          inversion HT'.
+        SCase "x<>y".
+          apply T_Var. rewrite extend_neq in H2...
+      Case "tm_abs".
+        rename i into y. apply T_Abs.
+        remember (beq_id x y) as e. destruct e.
+        SCase "x=y".
+          eapply context_invariance...
+          apply beq_id_eq in Heqe. subst.
+          intros x Hafi. unfold extend.
+          destruct (beq_id y x)...
+        SCase "x<>y".
+          apply IHt. eapply context_invariance...
+          intros z Hafi. unfold extend.
+          remember (beq_id y z) as e0. destruct e0...
+          apply beq_id_eq in Heqe0. subst.
+          rewrite <- Heqe...
+    Qed.
+
 置換補題は一種の「交換性」("commutation"
 property)と見なせます。直観的には、置換と型付けはどの順でやってもよいということを主張しています。(適切なコンテキストのもとで)項\ ``t``\ と\ ``v``\ に個別に型付けをしてから置換によって両者を組合せても良いし、置換を先にやって後から\ ``[v/x``\ t
 ] に型をつけることもできます。どちらでも結果は同じです。
@@ -830,9 +891,23 @@ property)と見なせます。直観的には、置換と型付けはどの順�
    t' HE; subst Gamma; subst; try solve [inversion HE; subst; auto].
    Case "T\_App". inversion HE; subst...
 
+   ::
+
+       SCase "ST_AppAbs".
+         apply substitution_preserves_typing with T11...
+         inversion HT1...
+
+   Qed.
+
 練習問題: ★★, recommended (subject\_expansion\_stlc)
 ''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+::
+
+    []
+    *)
+
+FILL IN HERE
 このファイルの前の練習問題で、算術式とブール式の簡単な言語についての主部展開性についてききました(訳注:実際には
 Types\_J.v内の練習問題)。STLCでこの性質は成立するでしょうか？つまり、\ ``t ==> t'``\ かつ\ ``has_type t' T``\ ならば\ ``has_type t T``\ ということが常に言えるでしょうか？もしそうならば証明しなさい。そうでなければ、反例を挙げなさい。
 
@@ -877,6 +952,43 @@ theorem)は閉じた、型が付けられる項は行き詰まらないことを
    Proof with eauto. intros t T Ht. remember (@empty ty) as Gamma.
    has\_type\_cases (induction Ht) Case; subst Gamma... Case "T\_Var".
 
+   ::
+
+       inversion H.
+
+   Case "T\_App".
+
+   ::
+
+       right. destruct IHHt1...
+
+       SCase "t1 is a value".
+         destruct IHHt2...
+         SSCase "t2 is also a value".
+
+           inversion H; subst. exists (subst t2 x t)...
+           solve by inversion. solve by inversion.
+         SSCase "t2 steps".
+           destruct H0 as [t2' Hstp]. exists (tm_app t1 t2')...
+
+       SCase "t1 steps".
+         destruct H as [t1' Hstp]. exists (tm_app t1' t2)...
+
+   Case "T\_If". right. destruct IHHt1...
+
+   ::
+
+       SCase "t1 is a value".
+
+         inversion H; subst. solve by inversion.
+         SSCase "t1 = true". eauto.
+         SSCase "t1 = false". eauto.
+
+       SCase "t1 also steps".
+         destruct H as [t1' Hstp]. exists (tm_if t1' t2 t3)...
+
+   Qed.
+
 練習問題: ★★★, optional (progress\_from\_term\_ind)
 '''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -890,7 +1002,7 @@ theorem)は閉じた、型が付けられる項は行き詰まらないことを
     Proof.
       intros t.
       tm_cases (induction t) Case; intros T Ht; auto.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -903,6 +1015,10 @@ theorem)は閉じた、型が付けられる項は行き詰まらないことを
 STLCの別の好ましい性質は、型が唯一であることです。つまり、与えらえた項については(与えられたコンテキストで)高々1つの型しか型付けされません。
 
 この主張を形式化し、証明しなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐
 
@@ -996,6 +1112,8 @@ STLCが実際のプログラミング言語の核として機能することを�
 -  ``subst``\ 操作と\ ``step``\ 関係の定義を拡張して、算術の操作の適切な節を含むようにしなさい。
 -  オリジナルのSTLCの性質の証明を拡張して、新しい構文を扱うようにしなさい。
    Coq がその証明を受理することを確認しなさい。
+
+   (\* FILL IN HERE \*)
 
 ☐
 

@@ -1,6 +1,10 @@
 RecordSub\_J: レコードのサブタイプ
 ==================================
 
+::
+
+    Require Export MoreStlc_J.
+
 中核部の定義
 ------------
 
@@ -10,6 +14,33 @@ RecordSub\_J: レコードのサブタイプ
 ::
 
     Inductive ty : Type :=
+
+      | ty_Top   : ty
+      | ty_base  : id -> ty
+      | ty_arrow : ty -> ty -> ty
+
+      | ty_rnil : ty
+      | ty_rcons : id -> ty -> ty -> ty.
+
+    Tactic Notation "ty_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "ty_Top" | Case_aux c "ty_base" | Case_aux c "ty_arrow"
+      | Case_aux c "ty_rnil" | Case_aux c "ty_rcons" ].
+
+    Inductive tm : Type :=
+
+      | tm_var : id -> tm
+      | tm_app : tm -> tm -> tm
+      | tm_abs : id -> ty -> tm -> tm
+      | tm_proj : tm -> id -> tm
+
+      | tm_rnil :  tm
+      | tm_rcons : id -> tm -> tm -> tm.
+
+    Tactic Notation "tm_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "tm_var" | Case_aux c "tm_app" | Case_aux c "tm_abs"
+      | Case_aux c "tm_proj" | Case_aux c "tm_rnil" | Case_aux c "tm_rcons" ].
 
 Well-Formedness
 ^^^^^^^^^^^^^^^
@@ -143,6 +174,44 @@ well-formedness を追加する必要があります。
 
     Inductive subtype : ty -> ty -> Prop :=
 
+      | S_Refl : forall T,
+        well_formed_ty T ->
+        subtype T T
+      | S_Trans : forall S U T,
+        subtype S U ->
+        subtype U T ->
+        subtype S T
+      | S_Top : forall S,
+        well_formed_ty S ->
+        subtype S ty_Top
+      | S_Arrow : forall S1 S2 T1 T2,
+        subtype T1 S1 ->
+        subtype S2 T2 ->
+        subtype (ty_arrow S1 S2) (ty_arrow T1 T2)
+
+      | S_RcdWidth : forall i T1 T2,
+        well_formed_ty (ty_rcons i T1 T2) ->
+        subtype (ty_rcons i T1 T2) ty_rnil
+      | S_RcdDepth : forall i S1 T1 Sr2 Tr2,
+        subtype S1 T1 ->
+        subtype Sr2 Tr2 ->
+        record_ty Sr2 ->
+        record_ty Tr2 ->
+        subtype (ty_rcons i S1 Sr2) (ty_rcons i T1 Tr2)
+      | S_RcdPerm : forall i1 i2 T1 T2 Tr3,
+        well_formed_ty (ty_rcons i1 T1 (ty_rcons i2 T2 Tr3)) ->
+        i1 <> i2 ->
+        subtype (ty_rcons i1 T1 (ty_rcons i2 T2 Tr3))
+                (ty_rcons i2 T2 (ty_rcons i1 T1 Tr3)).
+
+    Hint Constructors subtype.
+
+    Tactic Notation "subtype_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "S_Refl" | Case_aux c "S_Trans" | Case_aux c "S_Top"
+      | Case_aux c "S_Arrow" | Case_aux c "S_RcdWidth"
+      | Case_aux c "S_RcdDepth" | Case_aux c "S_RcdPerm" ].
+
 サブタイプの例と練習問題
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -161,7 +230,19 @@ well-formedness を追加する必要があります。
     Notation C := (ty_base (Id 8)).
 
     Definition ty_rcd_j  :=
-      (ty_rcons j (ty_arrow B B) ty_rnil).
+      (ty_rcons j (ty_arrow B B) ty_rnil).     
+    Definition ty_rcd_kj :=
+      ty_rcons k (ty_arrow A A) ty_rcd_j.      
+
+    Example subtyping_example_0 :
+      subtype (ty_arrow C ty_rcd_kj)
+              (ty_arrow C ty_rnil).
+
+    Proof.
+      apply S_Arrow.
+        apply S_Refl. auto.
+        unfold ty_rcd_kj, ty_rcd_j. apply S_RcdWidth; auto.
+    Qed.
 
 以下の事実のほとんどはCoqで証明することは簡単です。練習問題の効果を最大にするため、どのように証明するかを理解していることを紙の上でも確認しなさい!
 
@@ -172,7 +253,9 @@ well-formedness を追加する必要があります。
 
     Example subtyping_example_1 :
       subtype ty_rcd_kj ty_rcd_j.
-     Admitted.
+
+    Proof with eauto.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -184,7 +267,9 @@ well-formedness を追加する必要があります。
     Example subtyping_example_2 :
       subtype (ty_arrow ty_Top ty_rcd_kj)
               (ty_arrow (ty_arrow C C) ty_rcd_j).
-     Admitted.
+
+    Proof with eauto.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -196,7 +281,9 @@ well-formedness を追加する必要があります。
     Example subtyping_example_3 :
       subtype (ty_arrow ty_rnil (ty_rcons j A ty_rnil))
               (ty_arrow (ty_rcons k B ty_rnil) ty_rnil).
-     Admitted.
+
+    Proof with eauto.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -208,7 +295,9 @@ well-formedness を追加する必要があります。
     Example subtyping_example_4 :
       subtype (ty_rcons x A (ty_rcons y B (ty_rcons z C ty_rnil)))
               (ty_rcons z C (ty_rcons y B (ty_rcons x A ty_rnil))).
-     Admitted.
+
+    Proof with eauto.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -297,6 +386,10 @@ Well-Formedness
 
 ``rcd_types_match``\ 補題の非形式的証明を注意深く記述しなさい。
 
+::
+
+    (* FILL IN HERE *)
+
 ☐
 
 反転補題
@@ -315,6 +408,7 @@ Well-Formedness
       intros U V1 V2 Hs.
       remember (ty_arrow V1 V2) as V.
       generalize dependent V2. generalize dependent V1.
+      (* FILL IN HERE *) Admitted.
 
 型付け
 ------
@@ -344,6 +438,28 @@ Well-Formedness
           ty_lookup i T = Some Ti ->
           has_type Gamma (tm_proj t i) Ti
 
+      | T_Sub : forall Gamma t S T,
+          has_type Gamma t S ->
+          subtype S T ->
+          has_type Gamma t T
+
+      | T_RNil : forall Gamma,
+          has_type Gamma tm_rnil ty_rnil
+      | T_RCons : forall Gamma i t T tr Tr,
+          has_type Gamma t T ->
+          has_type Gamma tr Tr ->
+          record_ty Tr ->
+          record_tm tr ->
+          has_type Gamma (tm_rcons i t tr) (ty_rcons i T Tr).
+
+    Hint Constructors has_type.
+
+    Tactic Notation "has_type_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "T_Var" | Case_aux c "T_Abs" | Case_aux c "T_App"
+      | Case_aux c "T_Proj" | Case_aux c "T_Sub"
+      | Case_aux c "T_RNil" | Case_aux c "T_RCons" ].
+
 型付けの例
 ~~~~~~~~~~
 
@@ -363,7 +479,9 @@ Well-Formedness
                          (tm_rcons j (tm_abs z B (tm_var z))
                                    tm_rnil))
                ty_rcd_kj.
-     Admitted.
+
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -377,7 +495,9 @@ Well-Formedness
                (tm_app (tm_abs x ty_rcd_j (tm_proj (tm_var x) j))
                        (tm_rcd_kj))
                (ty_arrow B B).
-     Admitted.
+
+    Proof with eauto.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -394,7 +514,9 @@ Well-Formedness
                                         j))
                        (tm_abs z (ty_arrow C C) tm_rcd_kj))
                (ty_arrow B B).
-     Admitted.
+
+    Proof with eauto.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -473,7 +595,7 @@ Well-Formedness
          exists x, exists S1, exists s2,
             s = tm_abs x S1 s2.
     Proof with eauto.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 

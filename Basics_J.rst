@@ -138,14 +138,20 @@ Coqのコード中にコメントを含める場合には、大括弧を使用�
 ::
 
     Definition nandb (b1:bool) (b2:bool) : bool :=
-       admit.
+      (* FILL IN HERE *) admit.
 
 下の定義から\ ``Admitted.``\ を取り去り、代わりに"``Proof. simpl. reflexivity. Qed.``\ "で検証できるようなコードを記述しなさい。
 
 ::
 
     Example test_nandb1:               (nandb true false) = true.
-     Admitted.
+    (* FILL IN HERE *) Admitted.
+    Example test_nandb2:               (nandb false false) = true.
+    (* FILL IN HERE *) Admitted.
+    Example test_nandb3:               (nandb false true) = true.
+    (* FILL IN HERE *) Admitted.
+    Example test_nandb4:               (nandb true true) = false.
+    (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -155,7 +161,16 @@ Coqのコード中にコメントを含める場合には、大括弧を使用�
 ::
 
     Definition andb3 (b1:bool) (b2:bool) (b3:bool) : bool :=
-       Admitted.
+      (* FILL IN HERE *) admit.
+
+    Example test_andb31:                 (andb3 true true true) = true.
+    (* FILL IN HERE *) Admitted.
+    Example test_andb32:                 (andb3 false true true) = false.
+    (* FILL IN HERE *) Admitted.
+    Example test_andb33:                 (andb3 true false true) = false.
+    (* FILL IN HERE *) Admitted.
+    Example test_andb34:                 (andb3 true true false) = false.
+    (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -361,7 +376,12 @@ matchに引数を与える際、複数の引数を次のようにカンマで区
 ::
 
     Fixpoint factorial (n:nat) : nat :=
-       Admitted.
+      (* FILL IN HERE *) admit.
+
+    Example test_factorial1:          (factorial 3) = 6.
+    (* FILL IN HERE *) Admitted.
+    Example test_factorial2:          (factorial 5) = (mult 10 12).
+    (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -432,7 +452,14 @@ for\ ``l``\ ess-``t``\ han）。\ ``Fixpoint``\ を使用して１から作成�
 ::
 
     Definition blt_nat (n m : nat) : bool :=
-       Admitted.
+      (* FILL IN HERE *) admit.
+
+    Example test_blt_nat1:             (blt_nat 2 2) = false.
+    (* FILL IN HERE *) Admitted.
+    Example test_blt_nat2:             (blt_nat 2 4) = true.
+    (* FILL IN HERE *) Admitted.
+    Example test_blt_nat3:             (blt_nat 4 2) = false.
+    (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -530,6 +557,8 @@ for\ ``l``\ ess-``t``\ han）。\ ``Fixpoint``\ を使用して１から作成�
 
     Proof.
       intros n m.   
+      intros H.     
+      rewrite -> H. 
       reflexivity.  Qed.
 
 証明の1行目は、∀（forall）がついた、つまり「あらゆる\ ``n``,\ ``m``\ について」の部分をコンテキストに移しています。2行目は、\ ``n = m``\ ならば、という仮定をコンテキストに写し、\ ``H``\ という名前をこれに与えています。3行目は、ゴールになっている式(``n + n = m + m``)に仮定\ ``H``\ の左側を右側にするような書き換えを施しています。
@@ -546,7 +575,7 @@ for\ ``l``\ ess-``t``\ han）。\ ``Fixpoint``\ を使用して１から作成�
     Theorem plus_id_exercise : forall n m o : nat,
       n = m -> m = o -> n + m = m + o.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -571,7 +600,7 @@ Admittedコマンドは、Coqに対して「この証明はあきらめたので
     Theorem mult_1_plus : forall n m : nat,
       (1 + n) * m = m + (n * m).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -628,7 +657,7 @@ destructについている注釈"``as [| n'``]"は、"イントロパターン"�
     Theorem zero_nbeq_plus_1 : forall n : nat,
       beq_nat 0 (n + 1) = false.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -697,7 +726,7 @@ Bohannon の業績によるものです。
     Theorem andb_true_elim2 : forall b c : bool,
       andb b c = true -> c = true.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -734,6 +763,8 @@ Caseによる解析は少しだけうまくいきそうに思えますが、や�
       intros n. destruct n as [| n'].
       Case "n = 0".
         reflexivity. 
+      Case "n = S n'".
+        simpl.       
     Admitted.
 
 このような命題を証明する場合 －
@@ -780,7 +811,17 @@ for\ ``n'``\ （n'についての帰納法の仮定）」というような意�
     Theorem mult_0_r : forall n:nat,
       n * 0 = 0.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem plus_n_Sm : forall n m : nat,
+      S (n + m) = n + (S m).
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem plus_comm : forall n m : nat,
+      n + m = m + n.
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -799,9 +840,9 @@ for\ ``n'``\ （n'についての帰納法の仮定）」というような意�
 
     Lemma double_plus : forall n, double n = n + n .
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
-☐
+FILL IN HERE ☐
 
 練習問題: ★ (destruct\_induction)
 '''''''''''''''''''''''''''''''''
@@ -887,8 +928,7 @@ Coqはこのような証明を完璧にこなしてくれますが、上の証�
       Case "n = S n'".
         simpl. rewrite -> IHn'. reflexivity.   Qed.
 
-練習問題: ★★ (plus\_comm\_informal)
-'''''''''''''''''''''''''''''''''''
+FILL IN HERE FILL IN HERE ##### 練習問題: ★★ (plus\_comm\_informal)
 
 ``plus_comm``\ の証明を、非形式的な証明に書き換えなさい。
 
@@ -914,7 +954,7 @@ Proof:(\* FILL IN HERE \*)☐
     Theorem beq_nat_refl : forall n : nat,
       true = beq_nat n n.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -947,6 +987,8 @@ q)]であることを証明するとしましょう。\ ``=``\ の両側で異�
     Proof.
       intros n m p q.
 
+      rewrite -> plus_comm.
+
     Admitted.
 
 ``plus_comm``\ を、適用したいポイントに対して使用するには、まず\ ``n + m = m + n``\ で始まるような補助定理（ここでは何とかしようとしている\ ``m``\ と\ ``n``\ を特定するため）を導き、それを望むrewriteに使用します。
@@ -972,7 +1014,7 @@ q)]であることを証明するとしましょう。\ ``=``\ の両側で異�
     Theorem plus_swap : forall n m p : nat,
       n + (m + p) = m + (n + p).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 では、乗法が可換であることを証明しましょう。おそらく、補助的な定理を定義し、それを使って全体を証明することになると思います。先ほど証明した\ ``plus_swap``\ が便利に使えるでしょう。
 
@@ -981,7 +1023,7 @@ q)]であることを証明するとしましょう。\ ``=``\ の両側で異�
     Theorem mult_comm : forall m n : nat,
      m * n = n * m.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -993,7 +1035,7 @@ q)]であることを証明するとしましょう。\ ``=``\ の両側で異�
     Theorem evenb_n__oddb_Sn : forall n : nat,
       evenb n = negb (evenb (S n)).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1010,7 +1052,50 @@ q)]であることを証明するとしましょう。\ ``=``\ の両側で異�
     Theorem ble_nat_refl : forall n:nat,
       true = ble_nat n n.
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem zero_nbeq_S : forall n:nat,
+      beq_nat 0 (S n) = false.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem andb_false_r : forall b : bool,
+      andb b false = false.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem plus_ble_compat_l : forall n m p : nat,
+      ble_nat n m = true -> ble_nat (p + n) (p + m) = true.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem S_nbeq_0 : forall n:nat,
+      beq_nat (S n) 0 = false.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem mult_1_l : forall n:nat, 1 * n = n.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem all3_spec : forall b c : bool,
+        orb
+          (andb b c)
+          (orb (negb b)
+                   (negb c))
+      = true.
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem mult_plus_distr_r : forall n m p : nat,
+      (n + m) * p = (n * p) + (m * p).
+    Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Theorem mult_assoc : forall n m p : nat,
+      n * (m * p) = (n * m) * p.
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1026,7 +1111,7 @@ q)]であることを証明するとしましょう。\ ``=``\ の両側で異�
     Theorem plus_swap' : forall n m p : nat,
       n + (m + p) = m + (n + p).
     Proof.
-       Admitted.
+      (* FILL IN HERE *) Admitted.
 
 ☐
 
@@ -1049,9 +1134,11 @@ q)]であることを証明するとしましょう。\ ``=``\ の両側で異�
 
 nat型の定義\ ``O``\ や\ ``S``\ の意味が何かを語るものではなく、（\ ``O``\ が実際に何であろうが）\ ``O``\ がnatであって、\ ``n``\ がnatなら\ ``S``\ が何であろうと\ ``S n``\ はnatである、ということを示しているだけです。「\ ``O``\ がゼロで、\ ``S``\ は1を加える」という実装がそれを自然数としてみて実際に関数を書き、実行したり証明したりしてみてはじめて実際に意識されます。ここで定義するbinも同様で、次に書く関数が書かれてはじめて型binに実際の数学的な意味が与えられます。)
 
-(b) 先に定義したbin型の値をインクリメントする関数を作成しなさい。また、bin型をnat型に変換す売る関数も作成しなさい。
+(b) 先に定義したbin型の値をインクリメントする関数を作成しなさい。また、bin型をnat型に変換する関数も作成しなさい。
 
 (c) 最後にbで作成したインクリメント関数と、2進→自然数関数が可換であることを証明しなさい。これを証明するには、bin値をまずインクリメントしたものを自然数に変換したものが、先に自然数変換した後にインクリメントしたものの値と等しいことを証明すればよい。
+
+    (\* FILL IN HERE \*)
 
 ☐
 
@@ -1060,11 +1147,13 @@ nat型の定義\ ``O``\ や\ ``S``\ の意味が何かを語るものではな�
 
 この練習問題は前の問題の続きで、2進数に関するものである。前の問題で作成された定義や定理をここで用いてもよい。
 
-(a) まず自然数を2進数に変換する関数を書きなさい。そして「任意の自然数からスタートし、、それを2進数にコンバートし、それをさらに自然数にコンバートすると、スタート時の自然数に戻ることを証明しなさい。
+(a) まず自然数を2進数に変換する関数を書きなさい。そして「任意の自然数からスタートし、それを2進数にコンバートし、それをさらに自然数にコンバートすると、スタート時の自然数に戻ることを証明しなさい。
 
-(b) あなたはきっと、逆方向についての照明をしたほうがいいのでは、と考えているでしょう。それは、任意の2進数から始まり、それを自然数にコンバートしてから、また2進数にコンバートし直したものが、元の自然数と一致する、という証明です。しかしながら、この結果はtrueにはなりません。！！その原因を説明しなさい。
+(b) あなたはきっと、逆方向についての証明をしたほうがいいのでは、と考えているでしょう。それは、任意の2進数から始まり、それを自然数にコンバートしてから、また2進数にコンバートし直したものが、元の自然数と一致する、という証明です。しかしながら、この結果はtrueにはなりません。！！その原因を説明しなさい。
 
 (c) 2進数を引数として取り、それを一度自然数に変換した後、また2進数に変換したものを返すnormalize関数を作成し、証明しなさい。
+
+    (\* FILL IN HERE \*)
 
 練習問題: ★★, optional (decreasing)
 '''''''''''''''''''''''''''''''''''
@@ -1072,5 +1161,9 @@ nat型の定義\ ``O``\ や\ ``S``\ の意味が何かを語るものではな�
 各関数の引数のいくつかが"減少的"でなければならない、という要求仕様は、Coqのデザインにおいて基礎となっているものです。特に、そのことによって、Coq上で作成された関数が、どんな入力を与えられても必ずいつか終了する、ということが保障されています。しかし、Coqの"減少的な解析"が「とても洗練されているとまではいえない」ため、時には不自然な書き方で関数を定義しなければならない、ということもあります。
 
 これを具体的に感じるため、\ ``Fixpoint``\ で定義された、より「微妙な」関数の書き方を考えてみましょう（自然数に関する簡単な関数でかまいません）。それが全ての入力で停止することと、Coqがそれを、この制限のため受け入れてくれないことを確認しなさい。
+
+::
+
+    (* FILL IN HERE *)
 
 ☐

@@ -91,7 +91,7 @@ procedures")について記述します。それらは、Coqの論理の特定�
 
     Lemma solving_conj_hyp : forall (F F' : Prop),
       F /\ F' -> F.
-    Proof. auto. eauto. jauto.
+    Proof. auto. eauto. jauto.  Qed.
 
 タクティック\ ``jauto``\ は、最初に\ ``jauto_set``\ という前処理のタクティックを呼び、その後\ ``eauto``\ を呼ぶように作られています。これから、\ ``jauto``\ がどうはたらくかを理解するためには、タクティック\ ``jauto_set``\ を直接呼んでみるのが良いでしょう。
 
@@ -110,7 +110,7 @@ procedures")について記述します。それらは、Coqの論理の特定�
       (F -> R 2) ->
       Q 1 ->
       P 2 /\ F.
-    Proof. jauto.
+    Proof. jauto.  Qed.
 
 ``iauto``\ と\ ``jauto``\ の戦略は、トップレベルの連言をグローバルに解析し、その後\ ``eauto``\ を呼ぶというものです。このため、全称限量子を持つ仮定の、結論部の連言を扱うのが苦手です。次の例は、Coqの証明探索メカニズムの一般的な弱点を示しています。
 
@@ -121,13 +121,16 @@ procedures")について記述します。それらは、Coqの論理の特定�
     Proof.
       auto. eauto. iauto. jauto.
 
+      intros. destruct (H 2). auto.
+    Qed.
+
 この状況にはちょっとがっかりします。というのは、ほとんど同じである次のゴールは自動証明できるのです。唯一の違いは、全称限量子が連言のそれぞれに別々に付けられていることです。
 
 ::
 
     Lemma solved_by_jauto : forall (P Q : nat->Prop) (F : Prop),
       (forall n, P n) /\ (forall n, Q n) -> P 2.
-    Proof. jauto.
+    Proof. jauto.  Qed.
 
 選言
 ~~~~
@@ -172,7 +175,9 @@ procedures")について記述します。それらは、Coqの論理の特定�
     Lemma solving_exists_goal : forall (f : nat->Prop),
       f 2 -> exists x, f x.
     Proof.
-      auto.
+      auto. 
+      eauto. 
+    Qed.
 
 証明探索の他のタクティックと比べた\ ``jauto``\ の主な長所は、存在限量された、つまり\ ``exists x, P``\ という形の
 「仮定」を使える点です。
@@ -184,7 +189,10 @@ procedures")について記述します。それらは、Coqの論理の特定�
       (exists a, f a) ->
       (exists a, g a).
     Proof.
-      auto. eauto. iauto.
+      auto. eauto. iauto. 
+      jauto.              
+
+    Qed.
 
 否定
 ~~~~
@@ -197,7 +205,9 @@ procedures")について記述します。それらは、Coqの論理の特定�
       P 0 -> (forall x, ~ P x) -> False.
     Proof.
       intros P H0 HX.
-      eauto.
+      eauto.                  
+      unfold not in *. eauto. 
+    Qed.
 
 このため、タクティック\ ``iauto``\ と\ ``jauto``\ は前処理の中で\ ``unfold not in *``\ を組織的に呼びます。これにより、\ ``iauto``\ 、\ ``jauto``\ は上記のゴールをすぐに解決できます。
 
@@ -205,7 +215,7 @@ procedures")について記述します。それらは、Coqの論理の特定�
 
     Lemma negation_study_2 : forall (P : nat->Prop),
       P 0 -> (forall x, ~ P x) -> False.
-    Proof. jauto.
+    Proof. jauto.  Qed.
 
 (定義の展開に関する証明探索の振る舞いについては後でまた議論します。)
 
@@ -251,23 +261,50 @@ depth")と呼ばれます。タクティック\ ``auto``\ は単に\ ``auto 5``\
 
 次の補題には1つだけ証明があり、それは3ステップです。このため、\ ``auto n``\ は、\ ``n``\ が3以上の時これを証明し、3未満のときは証明できません。
 
+::
+
+    Lemma search_depth_1 : forall (P : nat->Prop),
+      P 0 ->
+      (P 0 -> P 1) ->
+      (P 1 -> P 2) ->
+      (P 2).
+    Proof.
+      auto 0. 
+      auto 1. 
+      auto 2. 
+      auto 3. 
+
+    Qed.
+
 この例を次のように一般化することができます。すべての\ ``k``\ について、\ ``P k``\ が\ ``P (k-1)``\ から導出されると仮定します。また、\ ``P 0``\ が成立するとします。タクティック\ ``auto``\ 、つまり\ ``auto 5``\ と同じですが、これは5未満のすべての\ ``k``\ の値について\ ``P k``\ を導出することができます。例えば\ ``auto``\ は\ ``P 4``\ を証明できます。
 
 ::
 
     Lemma search_depth_3 : forall (P : nat->Prop),
+       (P 0) ->
+       (forall k, P (k-1) -> P k) ->
+       (P 4).
+    Proof. auto. Qed.
 
 しかし、\ ``P 5``\ を証明するためには、少なくとも\ ``auto 6``\ を呼ぶ必要があります。
 
 ::
 
     Lemma search_depth_4 : forall (P : nat->Prop),
+       (P 0) ->
+       (forall k, P (k-1) -> P k) ->
+       (P 5).
+    Proof. auto. auto 6. Qed.
 
 ``auto``\ が限られた深さで証明を探すことから、\ ``auto``\ がゴール\ ``F``\ も\ ``F'``\ も証明できるのに\ ``F /\ F'``\ を証明できない、という場合があります。次の例では、\ ``auto``\ は\ ``P 4``\ を証明できますが、\ ``P 4 /\ P 4``\ を証明できません。なぜなら連言を分解するには1ステップ必要だからです。この連言を証明するためには、探索の深さを増やして少なくとも\ ``auto 6``\ を使う必要があります。
 
 ::
 
     Lemma search_depth_5 : forall (P : nat->Prop),
+       (P 0) ->
+       (forall k, P (k-1) -> P k) ->
+       (P 4 /\ P 4).
+    Proof. auto. auto 6. Qed.
 
 バックトラック
 ~~~~~~~~~~~~~~
@@ -281,6 +318,12 @@ depth")と呼ばれます。タクティック\ ``auto``\ は単に\ ``auto 5``\
 ::
 
     Lemma working_of_auto_1 : forall (P : nat->Prop),
+       (P 0) ->
+       (forall k, P (k+1) -> P k) ->
+       (forall k, P (k-1) -> P k) ->
+       (P 2).
+
+    Proof. intros P H1 H2 H3.  eauto. Qed.
 
 ``debug eauto``\ の出力メッセージは次の通りです。
 
@@ -299,6 +342,11 @@ depth
 ::
 
     Lemma working_of_auto_2 : forall (P : nat->Prop),
+       (P 0) ->
+       (forall k, P (k-1) -> P k) ->
+       (forall k, P (k+1) -> P k) ->
+       (P 2).
+    Proof. intros P H1 H3 H2.  eauto. Qed.
 
 このとき、出力メッセージは証明探索がたくさんの可能性を調べることを示唆しています。\ ``debug eauto``\ を\ ``info eauto``\ に替えると、\ ``eauto``\ が見つける証明は実際に単純なものではないことを見ることができます。
 
@@ -461,6 +509,8 @@ Imp言語の決定性補題のオリジナルの証明を振り返ってみま�
       c / st || st2 ->
       st1 = st2.
     Proof.
+      (* FILL IN HERE *) admit.
+    Qed.
 
 実際、自動化の利用は、ただ1つや2つの別のタクティックの代わりに\ ``auto``\ を使うというようなことではないのです。自動化の利用は、証明を記述しメンテナンスする作業を最小化するために、タクティック列の構成を再考することなのです。このプロセスは\ ``LibTactics_J.v``\ のタクティックを使うことで楽になります。そこで、自動化の使用法の最適化に取り組む前に、まず決定性の証明を書き直してみましょう:
 
@@ -487,6 +537,30 @@ Imp言語の決定性補題のオリジナルの証明を振り返ってみま�
       c / st || st2 ->
       st1 = st2.
     Proof.
+
+      introv E1 E2. gen st2.
+      induction E1; intros; inverts E2; tryfalse.
+      auto. auto.
+
+      dup 4.
+
+
+      assert (st' = st'0). apply IHE1_1. apply H1.
+         skip.
+
+
+      forwards: IHE1_1. apply H1.
+         skip.
+
+
+      forwards: IHE1_1. eauto.
+         skip.
+
+
+      forwards*: IHE1_1.
+         skip.
+
+    Admitted.
 
 証明記述を洗練するために、星印を使って呼び出しを\ ``auto``\ に分解することが残っています。そうすると、決定性の証明はたった4行の10個を越えないタクティックに書き直されます。
 
@@ -534,6 +608,18 @@ STLC
       Case "T_App".
         inversion HE; subst...
 
+
+        SCase "ST_AppAbs".
+          apply substitution_preserves_typing with T11...
+          inversion HT1...
+      Case "T_True".
+        inversion HE.
+      Case "T_False".
+        inversion HE.
+      Case "T_If".
+        inversion HE; subst...
+    Qed.
+
 練習問題:
 この証明を\ ``LibTactics``\ のタクティックを使って書き直しなさい。そして、\ ``...``\ の代わりに星印を使って自動証明を呼びなさい。より詳しくは、\ ``inverts``\ あるいは\ ``applys``\ の後で\ ``auto*``\ を呼ぶために\ ``inverts*``\ と\ ``applys*``\ を使いなさい。解は3行の長さです。
 
@@ -544,6 +630,8 @@ STLC
       t ==> t'  ->
       has_type empty t' T.
     Proof.
+      (* FILL IN HERE *) admit.
+    Qed.
 
 STLC の前進
 ~~~~~~~~~~~
@@ -587,6 +675,10 @@ STLC の前進
       has_type empty t T ->
       value t \/ exists t', t ==> t'.
     Proof.
+      (* FILL IN HERE *) admit.
+    Qed.
+
+    End PreservationProgressStlc.
 
 ビッグステップとスモールステップ
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -622,6 +714,10 @@ STLC の前進
     Theorem stepmany__eval' : forall t v,
       normal_form_of t v -> t || v.
     Proof.
+      (* FILL IN HERE *) admit.
+    Qed.
+
+    End Semantics.
 
 STLCRef の保存
 ~~~~~~~~~~~~~~
@@ -647,6 +743,83 @@ STLCRef の保存
          store_well_typed ST' st').
     Proof.
 
+
+      remember (@empty ty) as Gamma. introv Ht. gen t'.
+      (has_type_cases (induction Ht) Case); introv HST Hstep;
+
+       subst Gamma; inverts Hstep; eauto.
+
+      Case "T_App".
+      SCase "ST_AppAbs".
+
+
+      exists ST. inverts Ht1. splits*. applys* substitution_preserves_typing.
+
+      SCase "ST_App1".
+
+
+      forwards: IHHt1. eauto. eauto. eauto.
+
+      jauto_set_hyps; intros.
+
+      jauto_set_goal; intros.
+
+      eauto. eauto. eauto.
+
+      SCase "ST_App2".
+
+
+      forwards*: IHHt2.
+
+
+      forwards*: IHHt.
+      forwards*: IHHt.
+      forwards*: IHHt1.
+      forwards*: IHHt2.
+      forwards*: IHHt1.
+
+      Case "T_Ref".
+      SCase "ST_RefValue".
+
+
+      exists (snoc ST T1). inverts keep HST. splits.
+
+        apply extends_snoc.
+
+        applys_eq T_Loc 1.
+
+          rewrite length_snoc. omega.
+
+        unfold store_ty_lookup. rewrite <- H. rewrite* nth_eq_snoc.
+
+        apply* store_well_typed_snoc.
+
+      forwards*: IHHt.
+
+      Case "T_Deref".
+      SCase "ST_DerefLoc".
+
+
+      exists ST. splits*.
+
+      lets [_ Hsty]: HST.
+
+      applys_eq* Hsty 1.
+
+      inverts* Ht.
+
+      forwards*: IHHt.
+
+      Case "T_Assign".
+      SCase "ST_Assign".
+
+
+      exists ST. splits*. applys* assign_pres_store_typing. inverts* Ht1.
+
+      forwards*: IHHt1.
+      forwards*: IHHt2.
+    Qed.
+
 証明の最適化が難しい場合に戻りましょう。困難さの原因は\ ``nth_eq_snoc``\ です。これは、\ ``nth (length l) (snoc l x) d = x``\ をとります。この補題は使うのが難しいのです。それは最初の引数\ ``length l``\ が\ ``l``\ に言及していて、それが\ ``snoc l x``\ に現れる\ ``l``\ と完全に同じだからです。実際、通常は引数は自然数\ ``n``\ で、これは\ ``length l``\ と等しいかもしれませんが、構文的には\ ``length l``\ と違っています。\ ``nth_eq_snoc``\ を適用しやすくする簡単な修正方法があります。中間的な変数\ ``n``\ を明示的に導入し、ゴールを\ ``nth n (snoc l x) d = x``\ にします。そして、その際に仮定\ ``n = length l``\ を加えます。
 
 ::
@@ -664,6 +837,13 @@ STLCRef の保存
       ty_Ref T1 = ty_Ref (store_ty_lookup (length st) (snoc ST T1)).
     Proof.
       intros. dup.
+
+
+      unfold store_ty_lookup. rewrite* nth_eq_snoc'.
+
+
+      fequal. symmetry. apply* nth_eq_snoc'.
+    Qed.
 
 保存の最適化された証明は次のようにまとめられます。
 
@@ -776,6 +956,8 @@ STLCRef の前進
          subtype T1 S1
       /\ has_type (extend empty x S1) s2 T2.
     Proof.
+      (* FILL IN HERE *) admit.
+    Qed.
 
 補題\ ``substitution_preserves_typing``\ はファイル\ ``UseTactics_J.v``\ で\ ``lets``\ と\ ``applys``\ のはたらきを示すために既に使われています。この証明のさらなる最適化を、(星印付きの)自動処理とタクティック\ ``cases_if'``\ を使って行いなさい。解は33行で、\ ``Case``\ 命令を含みます。
 
@@ -786,6 +968,10 @@ STLCRef の前進
       has_type empty v U ->
       has_type Gamma (subst v x t) S.
     Proof.
+      (* FILL IN HERE *) admit.
+    Qed.
+
+    End SubtypingInversion.
 
 証明探索の進んだ話題
 --------------------
@@ -802,7 +988,23 @@ STLCRef の前進
     Lemma order_matters_1 : forall (P : nat->Prop),
       (forall n m, P m -> m <> 0 -> P n) -> P 2 -> P 1.
     Proof.
+      eauto. 
+
+    Qed.
+
+    Lemma order_matters_2 : forall (P : nat->Prop),
+      (forall n m, m <> 0 -> P m -> P n) -> P 5 -> P 1.
+    Proof.
+      eauto. 
+
+
+      intros P H K.
+      eapply H.
+
+
       eauto.
+
+    Admitted.
 
 理解の上で重要な点は、仮定\ ``forall n m, P m -> m <> 0 -> P n``\ はeautoに優しく、一方\ ``forall n m, m <> 0 -> P m -> P n``\ は実際はそうではない、ということです。\ ``P m``\ が成立する\ ``m``\ の値を推測し、それから\ ``m <> 0``\ が成立することをチェックするのがうまくいくのは、\ ``P m``\ が成立する\ ``m``\ がほとんどないからです。これから、\ ``eauto``\ が正しい\ ``m``\ を見つける可能性は高いのです。一方、\ ``m <> 0``\ となる\ ``m``\ の値を推測し、それから\ ``P m``\ が成立するかをチェックすることはうまくいきません。なぜなら、\ ``m <> 0``\ でありながら\ ``P m``\ ではない\ ``m``\ はたくさんあるからです。
 
@@ -826,7 +1028,9 @@ STLCRef の前進
     Lemma demo_hint_unfold_goal_1 :
       (forall x, P x) -> myFact.
     Proof.
-      auto.
+      auto.                
+      unfold myFact. auto. 
+    Qed.
 
 証明課題に現れる定義の展開を自動化するために、コマンド\ ``Hint Unfold myFact``\ を使うことができます。こうすると、\ ``myFact``\ がゴールに現れたときに常に\ ``myFact``\ を展開してみるべきであるということを、Coqに伝えることができます。
 
@@ -850,7 +1054,9 @@ STLCRef の前進
       (True -> myFact) -> P 3.
     Proof.
       intros.
-      auto.
+      auto.                      
+      unfold myFact in *. auto.  
+    Qed.
 
 注意:
 前の規則に1つ例外があります:コンテキストの定数はゴールに直接適用されるときに自動的に展開されます。例えば仮定が\ ``True -> myFact``\ ではなく\ ``myFact``\ であるとき、\ ``auto``\ は証明に成功します。
@@ -896,7 +1102,10 @@ STLCRef の前進
     Lemma demo_auto_absurd_1 :
       (exists x, x <= 3 /\ x > 3) -> False.
     Proof.
-      intros. jauto_set.
+      intros. jauto_set. 
+       eauto. 
+      eapply le_not_gt. eauto. eauto.
+    Qed.
 
 補題\ ``gt_not_le``\ は\ ``le_not_gt``\ と対称性があるため、同じことです。3つ目の補題\ ``le_gt_false``\ はより有効なヒントです。なぜなら、\ ``False``\ が結論部になっているため、現在のゴールが\ ``False``\ であるときに、証明探索が適用してみようとするからです。
 
@@ -908,6 +1117,13 @@ STLCRef の前進
       (exists x, x <= 3 /\ x > 3) -> False.
     Proof.
       dup.
+
+
+      intros. jauto_set.  eauto.
+
+
+      jauto.
+    Qed.
 
 まとめると、\ ``H1 -> H2 -> False``\ という形の補題は\ ``H1 -> ~ H2``\ よりはるかに有効なヒントです。両者は否定記号\ ``~``\ の定義のもとで同値であるにもかかわらずそうなのです。
 
@@ -925,6 +1141,24 @@ STLCRef の前進
       (x <= 3) -> (x > 3) -> 4 = 5.
     Proof.
       intros. dup 4.
+
+
+      false. eapply le_gt_false.
+        auto. 
+
+        skip.
+
+
+      false. eapply le_gt_false.
+        eauto. 
+        eauto. 
+
+
+      false le_gt_false. eauto. eauto.
+
+
+      false le_not_gt. eauto. eauto.
+    Qed.
 
 上の例で、\ ``false le_gt_false; eauto``\ はゴールを証明します。しかし\ ``false le_gt_false; auto``\ はゴールを証明できません。なぜなら\ ``auto``\ は存在変数を正しく具体化しないからです。\ ``false* le_gt_false``\ も動作しないことに注意します。なぜなら\ ``*``\ 記号は\ ``auto``\ を最初に呼ぶからです。ここでは、証明を完結するのに2つの可能性があります。\ ``false le_gt_false; eauto``\ を呼ぶか\ ``false* (le_gt_false 3)``\ を呼ぶかです。
 
@@ -966,7 +1200,8 @@ STLCRef の前進
     Lemma transitivity_bad_hint_1 : forall S T,
       subtype S T.
     Proof.
-      intros.
+      intros.  eauto. 
+    Admitted.
 
 セクションを閉じた後では、ヒント\ ``subtype_trans``\ はもうアクティブではなくなることに注意します。
 
@@ -1021,7 +1256,8 @@ STLCRef の前進
     Lemma transitivity_workaround_1 : forall T1 T2 T3 T4,
       subtype T1 T2 -> subtype T2 T3 -> subtype T3 T4 -> subtype T1 T4.
     Proof.
-      intros.
+      intros.  eauto. 
+    Qed.
 
 新しい external hint
 が複雑さの爆発を起こさないことをチェックすることもできるでしょう。
@@ -1031,7 +1267,8 @@ STLCRef の前進
     Lemma transitivity_workaround_2 : forall S T,
       subtype S T.
     Proof.
-      intros.
+      intros.  eauto. 
+    Admitted.
 
 決定手続き
 ----------
@@ -1049,6 +1286,12 @@ import する必要があります。次の通りです。
     Require Import Omega.
 
 例を示します:``x``\ と\ ``y``\ を2つの自然数(負にはならない)とする。\ ``y``\ は4以下と仮定し、\ ``x+x+1``\ は\ ``y``\ 以下と仮定し、そして\ ``x``\ はゼロではないと仮定する。すると、\ ``x``\ は1でなければならない。
+
+::
+
+    Lemma omega_demo_1 : forall (x y : nat),
+      (y <= 4) -> (x + x + 1 <= y) -> (x <> 0) -> (x = 1).
+    Proof. intros. omega. Qed.
 
 別の例:
 もし\ ``z``\ が\ ``x``\ と\ ``y``\ の間で、\ ``x``\ と\ ``y``\ の差が高々\ ``4``\ である場合、\ ``x``\ と\ ``z``\ の間は高々2である。
@@ -1076,10 +1319,27 @@ import する必要があります。次の通りです。
     Proof.
       intros.
 
+
+      false. omega.
+    Qed.
+
 Ring(環)
 ~~~~~~~~
 
 ``omega``\ と比較して、タクティック\ ``ring``\ は積算を対象としていますが、不等式についての推論は放棄しています。さらに、対象とするのは整数(型\ ``Z``)だけで、自然数(型\ ``nat``)は対象外です。以下は\ ``ring``\ の使い方の例です。
+
+::
+
+    Module RingDemo.
+      Require Import ZArith.
+      Open Scope Z_scope. 
+
+    Lemma ring_demo : forall (x y z : Z),
+        x * (y + z) - z * 3 * x
+      = x * y - 2 * x * z.
+    Proof. intros. ring. Qed.
+
+    End RingDemo.
 
 Congruence(合同)
 ~~~~~~~~~~~~~~~~

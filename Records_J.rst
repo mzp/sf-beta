@@ -1,6 +1,11 @@
 Records\_J: STLCにレコードを追加する
 ====================================
 
+::
+
+    Require Export Stlc_J.
+    Require Import Relations.
+
 レコードを追加する
 ------------------
 
@@ -79,6 +84,10 @@ Records\_J: STLCにレコードを追加する
 の限界につきあたりました。この型は期待する帰納原理を自動的には提供してくれないのです。\ ``ty_rcd``\ の場合の帰納法の仮定はリストの\ ``ty``\ 要素について何の情報も提供してくれないのです。このせいで、行いたい証明に対してこの型は役に立たなくなっています。
 
 ::
+
+    forall t : ty, P t
+    *)
+
 
     (* Check ty_ind.
        ====>
@@ -348,6 +357,26 @@ rules for it above
           has_type Gamma t2 T1 ->
           has_type Gamma (tm_app t1 t2) T2
 
+      | T_Proj : forall Gamma i t Ti Tr,
+          has_type Gamma t Tr ->
+          ty_lookup i Tr = Some Ti ->
+          has_type Gamma (tm_proj t i) Ti
+      | T_RNil : forall Gamma,
+          has_type Gamma tm_rnil ty_rnil
+      | T_RCons : forall Gamma i t T tr Tr,
+          has_type Gamma t T ->
+          has_type Gamma tr Tr ->
+          record_ty Tr ->
+          record_tm tr ->
+          has_type Gamma (tm_rcons i t tr) (ty_rcons i T Tr).
+
+    Hint Constructors has_type.
+
+    Tactic Notation "has_type_cases" tactic(first) ident(c) :=
+      first;
+      [ Case_aux c "T_Var" | Case_aux c "T_Abs" | Case_aux c "T_App"
+      | Case_aux c "T_Proj" | Case_aux c "T_RNil" | Case_aux c "T_RCons" ].
+
 例
 ~~
 
@@ -372,6 +401,7 @@ rules for it above
                  tm_rnil)))
         (ty_arrow B B).
     Proof.
+      (* FILL IN HERE *) Admitted.
 
 次の事実(あるいはすぐ上の事実も!)の証明を始める前に、それが何を主張しているかを確認しなさい。
 
@@ -384,6 +414,17 @@ rules for it above
                    (tm_rcons i1 (tm_abs a B (tm_var a)) (tm_var a))
                    T.
     Proof.
+      (* FILL IN HERE *) Admitted.
+
+    Example typing_nonexample_2 : forall y,
+      ~ exists T,
+        has_type (extend empty y A)
+               (tm_app (tm_abs a (ty_rcons i1 A ty_rnil)
+                         (tm_proj (tm_var a) i1))
+                       (tm_rcons i1 (tm_var y) (tm_rcons i2 (tm_var y) tm_rnil)))
+               T.
+    Proof.
+      (* FILL IN HERE *) Admitted.
 
 型付けの性質
 ~~~~~~~~~~~~
@@ -485,6 +526,77 @@ Well-Formedness
          value t \/ exists t', t ==> t'.
     Proof with eauto.
 
+
+      intros t T Ht.
+      remember (@empty ty) as Gamma.
+      generalize dependent HeqGamma.
+      has_type_cases (induction Ht) Case; intros HeqGamma; subst.
+      Case "T_Var".
+
+
+        inversion H.
+      Case "T_Abs".
+
+
+        left...
+      Case "T_App".
+
+
+        right.
+        destruct IHHt1; subst...
+        SCase "t1 is a value".
+          destruct IHHt2; subst...
+          SSCase "t2 is a value".
+
+
+            inversion H; subst; try (solve by inversion).
+            exists (subst x t2 t12)...
+          SSCase "t2 steps".
+
+
+            destruct H0 as [t2' Hstp]. exists (tm_app t1 t2')...
+        SCase "t1 steps".
+
+
+          destruct H as [t1' Hstp]. exists (tm_app t1' t2)...
+      Case "T_Proj".
+
+
+        right. destruct IHHt...
+        SCase "rcd is value".
+
+
+          destruct (lookup_field_in_value _ _ _ _ H0 Ht H) as [ti [Hlkup _]].
+          exists ti...
+        SCase "rcd_steps".
+
+
+          destruct H0 as [t' Hstp]. exists (tm_proj t' i)...
+      Case "T_RNil".
+
+
+        left...
+      Case "T_RCons".
+
+
+        destruct IHHt1...
+        SCase "head is a value".
+          destruct IHHt2; try reflexivity.
+          SSCase "tail is a value".
+
+
+            left...
+          SSCase "tail steps".
+
+
+            right. destruct H2 as [tr' Hstp].
+            exists (tm_rcons i t tr')...
+        SCase "head steps".
+
+
+          right. destruct H1 as [t' Hstp].
+          exists (tm_rcons i t' tr)...  Qed.
+
 コンテキスト不変性
 ^^^^^^^^^^^^^^^^^^
 
@@ -555,6 +667,89 @@ Well-Formedness
          has_type empty v U   ->
          has_type Gamma (subst x v t) S.
     Proof with eauto.
+
+
+      intros Gamma x U v t S Htypt Htypv.
+      generalize dependent Gamma. generalize dependent S.
+
+
+      tm_cases (induction t) Case;
+        intros S Gamma Htypt; simpl; inversion Htypt; subst...
+      Case "tm_var".
+        simpl. rename i into y.
+
+
+        remember (beq_id x y) as e. destruct e.
+        SCase "x=y".
+
+
+          apply beq_id_eq in Heqe. subst.
+          unfold extend in H0. rewrite <- beq_id_refl in H0.
+          inversion H0; subst. clear H0.
+          eapply context_invariance...
+          intros x Hcontra.
+          destruct (free_in_context _ _ S empty Hcontra) as [T' HT']...
+          inversion HT'.
+        SCase "x<>y".
+
+
+          apply T_Var... unfold extend in H0. rewrite <- Heqe in H0...
+      Case "tm_abs".
+        rename i into y. rename t into T11.
+
+
+        apply T_Abs...
+        remember (beq_id x y) as e. destruct e.
+        SCase "x=y".
+
+
+          eapply context_invariance...
+          apply beq_id_eq in Heqe. subst.
+          intros x Hafi. unfold extend.
+          destruct (beq_id y x)...
+        SCase "x<>y".
+
+
+          apply IHt. eapply context_invariance...
+          intros z Hafi. unfold extend.
+          remember (beq_id y z) as e0. destruct e0...
+          apply beq_id_eq in Heqe0. subst.
+          rewrite <- Heqe...
+      Case "tm_rcons".
+        apply T_RCons... inversion H7; subst; simpl...
+    Qed.
+
+    Theorem preservation : forall t t' T,
+         has_type empty t T  ->
+         t ==> t'  ->
+         has_type empty t' T.
+    Proof with eauto.
+      intros t t' T HT.
+
+
+      remember (@empty ty) as Gamma. generalize dependent HeqGamma.
+      generalize dependent t'.
+
+
+      has_type_cases (induction HT) Case;
+        intros t' HeqGamma HE; subst; inversion HE; subst...
+      Case "T_App".
+
+
+        inversion HE; subst...
+        SCase "ST_AppAbs".
+
+
+          apply substitution_preserves_typing with T1...
+          inversion HT1...
+      Case "T_Proj".
+
+
+        destruct (lookup_field_in_value _ _ _ _ H2 HT H)
+          as [vi [Hget Htyp]].
+        rewrite H4 in Hget. inversion Hget. subst...
+      Case "T_RCons".
+
 
         apply T_RCons... eapply step_preserves_record_tm...
     Qed.
